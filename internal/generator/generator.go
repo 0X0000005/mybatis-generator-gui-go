@@ -75,9 +75,9 @@ func (g *Generator) generateModel(columns []*database.TableColumn, tableComment 
 	var tmpl *template.Template
 	var err error
 	if g.config.UseLombokPlugin {
-		tmpl, err = template.New("model").Parse(modelLombokTemplate)
+		tmpl, err = template.New("model").Funcs(TemplateFuncs).Parse(modelLombokTemplate)
 	} else {
-		tmpl, err = template.New("model").Parse(modelTemplate)
+		tmpl, err = template.New("model").Funcs(TemplateFuncs).Parse(modelTemplate)
 	}
 	if err != nil {
 		return fmt.Errorf("解析模板失败: %v", err)
