@@ -2,7 +2,7 @@
 # MyBatis Generator GUI - 跨平台构建脚本
 
 VERSION="1.1.0"
-APP_NAME="mybatis-generator-gui"
+APP_NAME="mgg"
 
 echo "================================================"
 echo "MyBatis Generator GUI - 构建脚本"
@@ -62,9 +62,9 @@ echo ""
 echo "================================================"
 echo "构建完成!"
 echo "================================================"
-echo "Windows: ${APP_NAME}-windows-amd64.exe"
-echo "Linux:   ${APP_NAME}-linux-amd64"
+echo "Windows: ${APP_NAME}.exe"
+echo "Linux:   ${APP_NAME}"
 echo ""
-echo "启动命令 (Linux): ./${APP_NAME}-linux-amd64"
+echo "启动命令 (Linux): ./${APP_NAME}"
 echo "访问地址: http://localhost:8080"
 echo "================================================"

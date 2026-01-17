@@ -35,14 +35,19 @@ async function loadConnections() {
             const item = document.createElement('div');
             item.className = 'connection-item';
             item.innerHTML = `
-                <span>${conn.name} (${conn.dbType})</span>
-                <button class="btn btn-danger" onclick="deleteConnection(${conn.id})">删除</button>
+                <div class="connection-info" onclick="selectConnection(${conn.id}, '${conn.name}')">
+                    <strong>${conn.name}</strong>
+                    <small>${conn.dbType} - ${conn.host}:${conn.port}</small>
+                </div>
+                <div class="connection-actions">
+                    <button class="btn-icon" onclick="event.stopPropagation(); editConnection(${conn.id})" title="编辑">
+                        <svg width="16" height="16" fill="currentColor"><path d="M12.146 1.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1 0 .708l-10 10A.5.5 0 0 1 4.5 14H2a.5.5 0 0 1-.5-.5v-2.5a.5.5 0 0 1 .146-.354l10-10z"/></svg>
+                    </button>
+                    <button class="btn-icon btn-danger" onclick="event.stopPropagation(); deleteConnection(${conn.id})" title="删除">
+                        <svg width="16" height="16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4L4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+                    </button>
+                </div>
             `;
-            item.onclick = (e) => {
-                if (!e.target.classList.contains('btn-danger')) {
-                    selectConnection(conn.id);
-                }
-            };
             list.appendChild(item);
         });
     } catch (error) {
@@ -51,14 +56,14 @@ async function loadConnections() {
 }
 
 // 选择数据库连接
-async function selectConnection(id) {
+async function selectConnection(id, name) {
     currentDatabaseId = id;
 
-    // 高亮选中项
+    // 高亮选中的连接
     document.querySelectorAll('.connection-item').forEach(item => {
         item.classList.remove('active');
     });
-    event.currentTarget.classList.add('active');
+    event.currentTarget.closest('.connection-item').classList.add('active');
 
     // 加载表列表
     await loadTables();
@@ -212,6 +217,35 @@ async function saveConnection() {
     }
 }
 
+// 编辑数据库连接
+async function editConnection(id) {
+    try {
+        const response = await fetch('/api/connections');
+        const connections = await response.json();
+        const conn = connections.find(c => c.id === id);
+
+        if (!conn) {
+            showMessage('连接不存在', 'error');
+            return;
+        }
+
+        // 填充表单
+        document.getElementById('connectionId').value = conn.id;
+        document.getElementById('connectionName').value = conn.name;
+        document.getElementById('dbType').value = conn.dbType;
+        document.getElementById('host').value = conn.host;
+        document.getElementById('port').value = conn.port;
+        document.getElementById('username').value = conn.username;
+        document.getElementById('password').value = conn.password;
+        document.getElementById('schema').value = conn.schema;
+        document.getElementById('encoding').value = conn.encoding || 'utf8mb4';
+
+        showConnectionModal();
+    } catch (error) {
+        showMessage('加载连接失败: ' + error.message, 'error');
+    }
+}
+
 // 删除连接
 async function deleteConnection(id) {
     if (!confirm('确定要删除这个连接吗?')) return;
@@ -222,8 +256,14 @@ async function deleteConnection(id) {
         });
 
         if (response.ok) {
-            showMessage('删除成功!', 'success');
+            showMessage('删除成功', 'success');
             loadConnections();
+
+            // 如果删除的是当前选中的连接，清空表列表
+            if (currentDatabaseId === id) {
+                currentDatabaseId = null;
+                document.getElementById('tableList').innerHTML = '';
+            }
         } else {
             const result = await response.json();
             showMessage('删除失败: ' + result.error, 'error');
