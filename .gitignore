@@ -1,0 +1,38 @@
+# 二进制文件
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 测试相关
+*.test
+*.out
+coverage.txt
+
+# 依赖和缓存
+vendor/
+go.work
+
+# 数据库文件
+*.db
+config/*.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+tmp/
+temp/
