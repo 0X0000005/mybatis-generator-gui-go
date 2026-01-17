@@ -140,20 +140,7 @@ func DownloadCode(c *gin.Context) {
 	// 发送文件
 	c.File(zipPath)
 
-	log.Printf("INFO: 文件发送成功，准备清理: %s", zipPath)
-
-	// 发送后删除临时文件（异步）
-	go func() {
-		if err := os.Remove(zipPath); err != nil {
-			log.Printf("WARN: 删除临时文件失败: %v", err)
-		} else {
-			log.Printf("INFO: 临时文件已删除: %s", zipPath)
-		}
-
-		generatedZipsMu.Lock()
-		delete(generatedZips, downloadID)
-		generatedZipsMu.Unlock()
-	}()
+	log.Printf("INFO: 文件发送成功，文件将在5分钟后自动清理: %s", zipPath)
 }
 
 // getFileNames 从完整路径中提取文件名

@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	// TempDirName 临时目录名
-	TempDirName = "mgg_temp"
-	// FileExpireDuration 文件过期时间（30分钟）
-	FileExpireDuration = 30 * time.Minute
+	// TempDirName 临时目录名（相对于应用当前目录）
+	TempDirName = "temp"
+	// FileExpireDuration 文件过期时间（5分钟）
+	FileExpireDuration = 5 * time.Minute
 )
 
 // CreateZipArchive 创建ZIP归档文件
@@ -24,8 +24,14 @@ func CreateZipArchive(files []string, projectFolder, tableName string) (string, 
 		return "", fmt.Errorf("没有文件需要打包")
 	}
 
-	// 确保临时目录存在
-	tempDir := filepath.Join(os.TempDir(), TempDirName)
+	// 获取当前工作目录
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("获取当前目录失败: %v", err)
+	}
+
+	// 确保临时目录存在（应用当前目录下的temp）
+	tempDir := filepath.Join(currentDir, TempDirName)
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
 		return "", fmt.Errorf("创建临时目录失败: %v", err)
 	}
@@ -112,7 +118,13 @@ func addFileToZip(zipWriter *zip.Writer, filename string, basePath string) error
 
 // CleanExpiredZips 清理过期的ZIP文件
 func CleanExpiredZips() {
-	tempDir := filepath.Join(os.TempDir(), TempDirName)
+	// 获取当前工作目录
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return
+	}
+
+	tempDir := filepath.Join(currentDir, TempDirName)
 
 	// 检查目录是否存在
 	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
