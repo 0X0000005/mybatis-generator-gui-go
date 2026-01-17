@@ -12,7 +12,7 @@ body {
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
     background: white;
     border-radius: 15px;
@@ -43,7 +43,7 @@ header h1 {
 }
 
 .sidebar {
-    width: 300px;
+    width: 350px;
     background: #f8f9fa;
     border-right: 1px solid #dee2e6;
     padding: 20px;
