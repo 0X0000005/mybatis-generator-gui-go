@@ -55,7 +55,6 @@ func main() {
 		// 数据库表操作
 		apiGroup.POST("/tables", api.GetTables)
 		apiGroup.POST("/columns", api.GetColumns)
-		apiGroup.POST("/primary-key", api.GetPrimaryKey)
 
 		// 代码生成配置
 		apiGroup.GET("/generator-configs", api.GetGeneratorConfigs)
