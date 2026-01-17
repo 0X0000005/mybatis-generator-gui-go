@@ -2,18 +2,19 @@
 let currentDatabaseId = null;
 let currentTableName = null;
 
-// 工具函数
-function showMessage(message, type = 'success') {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message message-${type}`;
-    messageDiv.textContent = message;
+// 显示消息提示
+function showMessage(message, type = 'info') {
+    const messageEl = document.getElementById('message');
+    messageEl.textContent = message;
+    messageEl.className = `message ${type}`;
+    messageEl.style.display = 'block';
 
-    const content = document.querySelector('.content');
-    content.insertBefore(messageDiv, content.firstChild);
+    // 根据类型设置不同的显示时长
+    const duration = type === 'success' ? 5000 : type === 'error' ? 4000 : 3000;
 
     setTimeout(() => {
-        messageDiv.remove();
-    }, 3000);
+        messageEl.style.display = 'none';
+    }, duration);
 }
 
 function toPascalCase(str) {
