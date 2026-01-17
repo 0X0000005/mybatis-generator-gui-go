@@ -317,7 +317,20 @@ async function generateCode() {
         const result = await response.json();
 
         if (response.ok && result.success) {
-            showMessage('代码生成成功! 生成文件: ' + result.files.join(', '), 'success');
+            showMessage('代码生成成功! 正在准备下载...', 'success');
+
+            // 自动触发下载
+            const downloadUrl = `/api/download/${result.downloadId}`;
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `${currentTableName}_generated.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            setTimeout(() => {
+                showMessage(`已生成文件: ${result.files.join(', ')}`, 'info');
+            }, 1000);
         } else {
             showMessage('代码生成失败: ' + result.error, 'error');
         }

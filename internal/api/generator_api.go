@@ -1,7 +1,10 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/config"
@@ -45,6 +48,9 @@ func DeleteGeneratorConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }
 
+// 存储生成的ZIP文件映射
+var generatedZips = make(map[string]string)
+
 // GenerateCode 生成代码
 func GenerateCode(c *gin.Context) {
 	var req struct {
@@ -55,6 +61,11 @@ func GenerateCode(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// 如果ProjectFolder为空，使用临时目录
+	if req.Config.ProjectFolder == "" {
+		req.Config.ProjectFolder = filepath.Join(os.TempDir(), "mybatis-gen")
 	}
 
 	// 加载数据库配置
@@ -79,18 +90,69 @@ func GenerateCode(c *gin.Context) {
 
 	// 创建生成器并生成代码
 	gen := generator.NewGenerator(&req.Config, dbConfig)
-	if err := gen.Generate(); err != nil {
+	files, err := gen.Generate()
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	// 打包成ZIP
+	zipPath, err := generator.CreateZipArchive(files, req.Config.ProjectFolder)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "打包失败: " + err.Error()})
+		return
+	}
+
+	// 生成唯一的下载ID
+	downloadID := fmt.Sprintf("%d_%s", req.DatabaseID, req.Config.TableName)
+	generatedZips[downloadID] = zipPath
+
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "代码生成成功",
-		"files": []string{
-			req.Config.DomainObjectName + ".java",
-			req.Config.MapperName + ".java",
-			req.Config.MapperName + ".xml",
-		},
+		"success":    true,
+		"message":    "代码生成成功",
+		"downloadId": downloadID,
+		"files":      getFileNames(files),
 	})
+}
+
+// DownloadCode 下载生成的代码ZIP
+func DownloadCode(c *gin.Context) {
+	downloadID := c.Param("id")
+
+	zipPath, exists := generatedZips[downloadID]
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "下载文件不存在"})
+		return
+	}
+
+	// 检查文件是否存在
+	if _, err := os.Stat(zipPath); os.IsNotExist(err) {
+		delete(generatedZips, downloadID)
+		c.JSON(http.StatusNotFound, gin.H{"error": "文件已过期"})
+		return
+	}
+
+	// 设置响应头
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Content-Disposition", "attachment; filename="+filepath.Base(zipPath))
+	c.Header("Content-Type", "application/zip")
+
+	// 发送文件
+	c.File(zipPath)
+
+	// 发送后删除临时文件
+	go func() {
+		os.Remove(zipPath)
+		delete(generatedZips, downloadID)
+	}()
+}
+
+// getFileNames 从完整路径中提取文件名
+func getFileNames(files []string) []string {
+	names := make([]string, len(files))
+	for i, file := range files {
+		names[i] = filepath.Base(file)
+	}
+	return names
 }

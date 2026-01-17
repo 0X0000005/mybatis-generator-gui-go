@@ -55,6 +55,7 @@ func main() {
 		// 数据库表操作
 		apiGroup.POST("/tables", api.GetTables)
 		apiGroup.POST("/columns", api.GetColumns)
+		apiGroup.POST("/primary-key", api.GetPrimaryKey)
 
 		// 代码生成配置
 		apiGroup.GET("/generator-configs", api.GetGeneratorConfigs)
@@ -63,6 +64,7 @@ func main() {
 
 		// 代码生成
 		apiGroup.POST("/generate", api.GenerateCode)
+		apiGroup.GET("/download/:id", api.DownloadCode)
 
 		// 版本信息
 		apiGroup.GET("/version", func(c *gin.Context) {

@@ -29,45 +29,55 @@ func NewGenerator(cfg *config.GeneratorConfig, dbCfg *config.DatabaseConfig) *Ge
 }
 
 // Generate 生成代码
-func (g *Generator) Generate() error {
+func (g *Generator) Generate() ([]string, error) {
+	var generatedFiles []string
+
 	// 连接数据库
 	if err := g.connector.Connect(); err != nil {
-		return fmt.Errorf("连接数据库失败: %v", err)
+		return nil, fmt.Errorf("连接数据库失败: %v", err)
 	}
 	defer g.connector.Close()
 
 	// 获取表列信息
 	columns, err := g.connector.GetTableColumns(g.config.TableName)
 	if err != nil {
-		return fmt.Errorf("获取表列信息失败: %v", err)
+		return nil, fmt.Errorf("获取表列信息失败: %v", err)
 	}
 
 	// 获取表注释
 	tableComment, err := g.connector.GetTableComment(g.config.TableName)
 	if err != nil {
-		return fmt.Errorf("获取表注释失败: %v", err)
+		return nil, fmt.Errorf("获取表注释失败: %v", err)
 	}
 
 	// 生成Model类
-	if err := g.generateModel(columns, tableComment); err != nil {
-		return fmt.Errorf("生成Model失败: %v", err)
+	modelFile, err := g.generateModel(columns, tableComment)
+	if err != nil {
+		return nil, fmt.Errorf("生成Model失败: %v", err)
 	}
+	generatedFiles = append(generatedFiles, modelFile)
 
 	// 生成Mapper接口
-	if err := g.generateMapper(columns); err != nil {
-		return fmt.Errorf("生成Mapper接口失败: %v", err)
+	mapperFile, err := g.generateMapper(columns)
+	if err != nil {
+		return nil, fmt.Errorf("生成Mapper接口失败: %v", err)
 	}
+	generatedFiles = append(generatedFiles, mapperFile)
 
 	// 生成Mapper XML
-	if err := g.generateMapperXML(columns); err != nil {
-		return fmt.Errorf("生成Mapper XML失败: %v", err)
+	xmlFile, err := g.generateMapperXML(columns)
+	if err != nil {
+		return nil, fmt.Errorf("生成Mapper XML失败: %v", err)
+	}
+	if xmlFile != "" {
+		generatedFiles = append(generatedFiles, xmlFile)
 	}
 
-	return nil
+	return generatedFiles, nil
 }
 
 // generateModel 生成Java Model类
-func (g *Generator) generateModel(columns []*database.TableColumn, tableComment string) error {
+func (g *Generator) generateModel(columns []*database.TableColumn, tableComment string) (string, error) {
 	// 准备模板数据
 	data := g.prepareModelData(columns, tableComment)
 
@@ -80,99 +90,99 @@ func (g *Generator) generateModel(columns []*database.TableColumn, tableComment 
 		tmpl, err = template.New("model").Funcs(TemplateFuncs).Parse(modelTemplate)
 	}
 	if err != nil {
-		return fmt.Errorf("解析模板失败: %v", err)
+		return "", fmt.Errorf("解析模板失败: %v", err)
 	}
 
 	// 生成文件路径
 	filePath := g.getModelFilePath()
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		return fmt.Errorf("创建目录失败: %v", err)
+		return "", fmt.Errorf("创建目录失败: %v", err)
 	}
 
 	// 创建文件
 	file, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("创建文件失败: %v", err)
+		return "", fmt.Errorf("创建文件失败: %v", err)
 	}
 	defer file.Close()
 
 	// 执行模板
 	if err := tmpl.Execute(file, data); err != nil {
-		return fmt.Errorf("执行模板失败: %v", err)
+		return "", fmt.Errorf("执行模板失败: %v", err)
 	}
 
-	return nil
+	return filePath, nil
 }
 
 // generateMapper 生成Java Mapper接口
-func (g *Generator) generateMapper(columns []*database.TableColumn) error {
+func (g *Generator) generateMapper(columns []*database.TableColumn) (string, error) {
 	// 准备模板数据
 	data := g.prepareMapperData(columns)
 
 	// 解析模板
 	tmpl, err := template.New("mapper").Parse(mapperTemplate)
 	if err != nil {
-		return fmt.Errorf("解析模板失败: %v", err)
+		return "", fmt.Errorf("解析模板失败: %v", err)
 	}
 
 	// 生成文件路径
 	filePath := g.getMapperFilePath()
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		return fmt.Errorf("创建目录失败: %v", err)
+		return "", fmt.Errorf("创建目录失败: %v", err)
 	}
 
 	// 创建文件
 	file, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("创建文件失败: %v", err)
+		return "", fmt.Errorf("创建文件失败: %v", err)
 	}
 	defer file.Close()
 
 	// 执行模板
 	if err := tmpl.Execute(file, data); err != nil {
-		return fmt.Errorf("执行模板失败: %v", err)
+		return "", fmt.Errorf("执行模板失败: %v", err)
 	}
 
-	return nil
+	return filePath, nil
 }
 
 // generateMapperXML 生成MyBatis Mapper XML
-func (g *Generator) generateMapperXML(columns []*database.TableColumn) error {
+func (g *Generator) generateMapperXML(columns []*database.TableColumn) (string, error) {
 	// 准备模板数据
 	data := g.prepareMapperXMLData(columns)
 
 	// 解析模板
 	tmpl, err := template.New("mapperXML").Parse(mapperXMLTemplate)
 	if err != nil {
-		return fmt.Errorf("解析模板失败: %v", err)
+		return "", fmt.Errorf("解析模板失败: %v", err)
 	}
 
 	// 生成文件路径
 	filePath := g.getMapperXMLFilePath()
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		return fmt.Errorf("创建目录失败: %v", err)
+		return "", fmt.Errorf("创建目录失败: %v", err)
 	}
 
 	// 如果不覆盖且文件已存在，则跳过
 	if !g.config.OverrideXML {
 		if _, err := os.Stat(filePath); err == nil {
-			return nil // 文件存在，跳过
+			return "", nil // 文件存在，跳过
 		}
 	}
 
 	// 创建文件
 	file, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("创建文件失败: %v", err)
+		return "", fmt.Errorf("创建文件失败: %v", err)
 	}
 	defer file.Close()
 
 	// 执行模板
 	if err := tmpl.Execute(file, data); err != nil {
-		return fmt.Errorf("执行模板失败: %v", err)
+		return "", fmt.Errorf("执行模板失败: %v", err)
 	}
 
-	return nil
+	return filePath, nil
 }
 
 // ModelField Model字段
