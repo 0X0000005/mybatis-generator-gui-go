@@ -81,27 +81,37 @@ func CloseDatabase() error {
 
 // SaveDatabaseConfig 保存数据库配置
 func SaveDatabaseConfig(config *DatabaseConfig, isUpdate bool) error {
-	jsonData, err := json.Marshal(config)
+	// 加密密码
+	encryptedPassword, err := Encrypt(config.Password)
+	if err != nil {
+		return fmt.Errorf("加密密码失败: %v", err)
+	}
+
+	// 创建用于存储的副本，使用加密后的密码
+	configToSave := *config
+	configToSave.Password = encryptedPassword
+
+	jsonData, err := json.Marshal(configToSave)
 	if err != nil {
 		return fmt.Errorf("序列化配置失败: %v", err)
 	}
 
 	if isUpdate {
 		_, err = db.Exec("UPDATE dbs SET name = ?, value = ? WHERE id = ?",
-			config.Name, string(jsonData), config.ID)
+			configToSave.Name, string(jsonData), configToSave.ID)
 	} else {
 		// 检查名称是否已存在
 		var count int
-		err = db.QueryRow("SELECT COUNT(*) FROM dbs WHERE name = ?", config.Name).Scan(&count)
+		err = db.QueryRow("SELECT COUNT(*) FROM dbs WHERE name = ?", configToSave.Name).Scan(&count)
 		if err != nil {
 			return fmt.Errorf("检查配置名称失败: %v", err)
 		}
 		if count > 0 {
-			return fmt.Errorf("配置名称已存在: %s", config.Name)
+			return fmt.Errorf("配置名称已存在: %s", configToSave.Name)
 		}
 
 		_, err = db.Exec("INSERT INTO dbs (name, value) VALUES (?, ?)",
-			config.Name, string(jsonData))
+			configToSave.Name, string(jsonData))
 	}
 
 	return err
@@ -128,6 +138,14 @@ func LoadDatabaseConfigs() ([]*DatabaseConfig, error) {
 			return nil, fmt.Errorf("反序列化配置失败: %v", err)
 		}
 		config.ID = id
+
+		// 解密密码
+		decryptedPassword, err := Decrypt(config.Password)
+		if err != nil {
+			return nil, fmt.Errorf("解密密码失败: %v", err)
+		}
+		config.Password = decryptedPassword
+
 		configs = append(configs, &config)
 	}
 
