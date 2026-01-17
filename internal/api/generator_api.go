@@ -19,12 +19,6 @@ var (
 	generatedZipsMu sync.RWMutex
 )
 
-// 存储生成的ZIP文件映射（线程安全）
-var (
-	generatedZips   = make(map[string]string)
-	generatedZipsMu sync.RWMutex
-)
-
 // GenerateCode 生成代码
 func GenerateCode(c *gin.Context) {
 	var req struct {
