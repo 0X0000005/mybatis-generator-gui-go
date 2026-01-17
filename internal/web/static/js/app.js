@@ -350,22 +350,8 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     });
 
-    // 点击模态框外部关闭（只在点击遮罩层时）
-    const modal = document.getElementById('connectionModal');
-    modal.onclick = function (event) {
-        // 只有点击模态框背景（遮罩层）时才关闭
-        if (event.target === modal) {
-            hideConnectionModal();
-        }
-    };
-
-    // 阻止模态框内容区域的点击事件冒泡
-    const modalContent = document.querySelector('.modal-content');
-    if (modalContent) {
-        modalContent.onclick = function (e) {
-            e.stopPropagation();
-        };
-    }
+    // 不再监听模态框背景点击事件，避免失焦关闭
+    // 用户只能通过关闭按钮或ESC键关闭对话框
 
     // 测试连接按钮
     document.getElementById('btnTestConnection').onclick = testConnection;
