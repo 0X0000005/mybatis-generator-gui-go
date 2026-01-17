@@ -26,6 +26,8 @@ if errorlevel 1 (
 
 echo.
 echo [3/5] 编译Windows版本...
+set GOOS=windows
+set GOARCH=amd64
 go build -ldflags "-s -w -X main.version=%VERSION%" -o %APP_NAME%-windows-amd64.exe .\cmd\main.go
 if errorlevel 1 (
     echo 错误: Windows编译失败
@@ -39,6 +41,8 @@ echo [4/5] 编译Linux版本...
 set GOOS=linux
 set GOARCH=amd64
 go build -ldflags "-s -w -X main.version=%VERSION%" -o %APP_NAME%-linux-amd64 .\cmd\main.go
+set GOOS=
+set GOARCH=
 if errorlevel 1 (
     echo 错误: Linux编译失败
     pause
