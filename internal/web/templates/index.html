@@ -43,16 +43,11 @@
                     <h2>代码生成配置</h2>
 
                     <form id="generatorForm">
-                        <div class="form-group">
-                            <label>项目目录</label>
-                            <input type="text" id="projectFolder" class="form-input"
-                                placeholder="例如: D:\project\mybatis-demo">
-                        </div>
-
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Model包名</label>
-                                <input type="text" id="modelPackage" class="form-input" placeholder="com.example.model">
+                                <input type="text" id="modelPackage" class="form-input" value="com.example.model"
+                                    placeholder="com.example.model">
                             </div>
                             <div class="form-group">
                                 <label>Model目标文件夹</label>
@@ -63,7 +58,8 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>DAO包名</label>
-                                <input type="text" id="daoPackage" class="form-input" placeholder="com.example.mapper">
+                                <input type="text" id="daoPackage" class="form-input" value="com.example.mapper"
+                                    placeholder="com.example.mapper">
                             </div>
                             <div class="form-group">
                                 <label>DAO目标文件夹</label>
@@ -74,7 +70,8 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Mapper包名</label>
-                                <input type="text" id="mapperPackage" class="form-input" placeholder="mapper">
+                                <input type="text" id="mapperPackage" class="form-input" value="mapper"
+                                    placeholder="mapper">
                             </div>
                             <div class="form-group">
                                 <label>Mapper目标文件夹</label>
@@ -86,22 +83,22 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>表名</label>
-                                <input type="text" id="tableName" class="form-input" readonly>
+                                <input type="text" id="tableName" class="form-input" readonly placeholder="请先选择表">
                             </div>
                             <div class="form-group">
                                 <label>实体类名</label>
-                                <input type="text" id="domainObjectName" class="form-input">
+                                <input type="text" id="domainObjectName" class="form-input" placeholder="自动生成">
                             </div>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Mapper名</label>
-                                <input type="text" id="mapperName" class="form-input">
+                                <input type="text" id="mapperName" class="form-input" placeholder="自动生成">
                             </div>
                             <div class="form-group">
-                                <label>主键字段</label>
-                                <input type="text" id="generateKeys" class="form-input" placeholder="id">
+                                <label>主键字段 <small style="color: #999;">(从数据库自动识别)</small></label>
+                                <input type="text" id="generateKeys" class="form-input" readonly placeholder="id">
                             </div>
                         </div>
 

@@ -246,7 +246,6 @@ async function generateCode() {
     }
 
     const config = {
-        projectFolder: document.getElementById('projectFolder').value,
         modelPackage: document.getElementById('modelPackage').value,
         modelPackageTargetFolder: document.getElementById('modelTargetFolder').value,
         daoPackage: document.getElementById('daoPackage').value,
