@@ -83,4 +83,3 @@ echo 启动命令 (Windows): %APP_NAME%.exe
 echo 访问地址: http://localhost:8080
 echo ================================================
 echo.
-pause
