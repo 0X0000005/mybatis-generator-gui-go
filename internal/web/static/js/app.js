@@ -1,0 +1,364 @@
+// 全局变量
+let currentDatabaseId = null;
+let currentTableName = null;
+
+// 工具函数
+function showMessage(message, type = 'success') {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message message-${type}`;
+    messageDiv.textContent = message;
+    
+    const content = document.querySelector('.content');
+    content.insertBefore(messageDiv, content.firstChild);
+    
+    setTimeout(() => {
+        messageDiv.remove();
+    }, 3000);
+}
+
+function toPascalCase(str) {
+    return str.split('_').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join('');
+}
+
+// 加载数据库连接列表
+async function loadConnections() {
+    try {
+        const response = await fetch('/api/connections');
+        const connections = await response.json();
+        
+        const list = document.getElementById('connectionList');
+        list.innerHTML = '';
+        
+        connections.forEach(conn => {
+            const item = document.createElement('div');
+            item.className = 'connection-item';
+            item.innerHTML = `
+                <span>${conn.name} (${conn.dbType})</span>
+                <button class="btn btn-danger" onclick="deleteConnection(${conn.id})">删除</button>
+            `;
+            item.onclick = (e) => {
+                if (!e.target.classList.contains('btn-danger')) {
+                    selectConnection(conn.id);
+                }
+            };
+            list.appendChild(item);
+        });
+    } catch (error) {
+        showMessage('加载连接列表失败: ' + error.message, 'error');
+    }
+}
+
+// 选择数据库连接
+async function selectConnection(id) {
+    currentDatabaseId = id;
+    
+    // 高亮选中项
+    document.querySelectorAll('.connection-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+    
+    // 加载表列表
+    await loadTables();
+}
+
+// 加载表列表
+async function loadTables(filter = '') {
+    if (!currentDatabaseId) return;
+    
+    try {
+        const response = await fetch('/api/tables', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                databaseId: currentDatabaseId,
+                filter: filter
+            })
+        });
+        
+        const tables = await response.json();
+        
+        const list = document.getElementById('tableList');
+        list.innerHTML = '';
+        
+        tables.forEach(tableName => {
+            const item = document.createElement('div');
+            item.className = 'table-item';
+            item.textContent = tableName;
+            item.onclick = () => selectTable(tableName);
+            list.appendChild(item);
+        });
+    } catch (error) {
+        showMessage('加载表列表失败: ' + error.message, 'error');
+    }
+}
+
+// 选择表
+function selectTable(tableName) {
+    currentTableName = tableName;
+    
+    // 填充表单
+    document.getElementById('tableName').value = tableName;
+    document.getElementById('domainObjectName').value = toPascalCase(tableName);
+    document.getElementById('mapperName').value = toPascalCase(tableName) + 'Mapper';
+}
+
+// 新建/编辑连接
+function showConnectionModal(connection = null) {
+    const modal = document.getElementById('connectionModal');
+    const title = document.getElementById('connectionModalTitle');
+    
+    if (connection) {
+        title.textContent = '编辑数据库连接';
+        document.getElementById('connectionId').value = connection.id;
+        document.getElementById('connectionName').value = connection.name;
+        document.getElementById('dbType').value = connection.dbType;
+        document.getElementById('host').value = connection.host;
+        document.getElementById('port').value = connection.port;
+        document.getElementById('schema').value = connection.schema;
+        document.getElementById('username').value = connection.username;
+        document.getElementById('password').value = connection.password;
+    } else {
+        title.textContent = '新建数据库连接';
+        document.getElementById('connectionForm').reset();
+        document.getElementById('connectionId').value = '';
+        document.getElementById('port').value = '3306';
+        document.getElementById('host').value = 'localhost';
+    }
+    
+    modal.style.display = 'block';
+}
+
+function hideConnectionModal() {
+    document.getElementById('connectionModal').style.display = 'none';
+}
+
+// 测试连接
+async function testConnection() {
+    const config = {
+        dbType: document.getElementById('dbType').value,
+        host: document.getElementById('host').value,
+        port: document.getElementById('port').value,
+        schema: document.getElementById('schema').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+    };
+    
+    try {
+        const response = await fetch('/api/connections/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('连接成功!', 'success');
+        } else {
+            showMessage('连接失败: ' + result.message, 'error');
+        }
+    } catch (error) {
+        showMessage('测试连接失败: ' + error.message, 'error');
+    }
+}
+
+// 保存连接
+async function saveConnection() {
+    const id = document.getElementById('connectionId').value;
+    const config = {
+        name: document.getElementById('connectionName').value,
+        dbType: document.getElementById('dbType').value,
+        host: document.getElementById('host').value,
+        port: document.getElementById('port').value,
+        schema: document.getElementById('schema').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+        encoding: 'utf8mb4'
+    };
+    
+    try {
+        const url = id ? `/api/connections/${id}` : '/api/connections';
+        const method = id ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showMessage('保存成功!', 'success');
+            hideConnectionModal();
+            loadConnections();
+        } else {
+            showMessage('保存失败: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showMessage('保存失败: ' + error.message, 'error');
+    }
+}
+
+// 删除连接
+async function deleteConnection(id) {
+    if (!confirm('确定要删除这个连接吗?')) return;
+    
+    try {
+        const response = await fetch(`/api/connections/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showMessage('删除成功!', 'success');
+            loadConnections();
+        } else {
+            const result = await response.json();
+            showMessage('删除失败: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showMessage('删除失败: ' + error.message, 'error');
+    }
+}
+
+// 生成代码
+async function generateCode() {
+    if (!currentDatabaseId) {
+        showMessage('请先选择数据库连接', 'error');
+        return;
+    }
+    
+    if (!currentTableName) {
+        showMessage('请先选择表', 'error');
+        return;
+    }
+    
+    const config = {
+        projectFolder: document.getElementById('projectFolder').value,
+        modelPackage: document.getElementById('modelPackage').value,
+        modelPackageTargetFolder: document.getElementById('modelTargetFolder').value,
+        daoPackage: document.getElementById('daoPackage').value,
+        daoTargetFolder: document.getElementById('daoTargetFolder').value,
+        mappingXMLPackage: document.getElementById('mapperPackage').value,
+        mappingXMLTargetFolder: document.getElementById('mapperTargetFolder').value,
+        tableName: document.getElementById('tableName').value,
+        domainObjectName: document.getElementById('domainObjectName').value,
+        mapperName: document.getElementById('mapperName').value,
+        generateKeys: document.getElementById('generateKeys').value,
+        encoding: document.getElementById('encoding').value,
+        offsetLimit: document.getElementById('offsetLimit').checked,
+        comment: document.getElementById('comment').checked,
+        overrideXML: document.getElementById('overrideXML').checked,
+        useLombokPlugin: document.getElementById('useLombokPlugin').checked,
+        jsr310Support: document.getElementById('jsr310Support').checked
+    };
+    
+    try {
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                databaseId: currentDatabaseId,
+                config: config
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showMessage('代码生成成功! 生成文件: ' + result.files.join(', '), 'success');
+        } else {
+            showMessage('代码生成失败: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showMessage('代码生成失败: ' + error.message, 'error');
+    }
+}
+
+// 保存配置
+async function saveConfig() {
+    const name = prompt('请输入配置名称:');
+    if (!name) return;
+    
+    const config = {
+        name: name,
+        projectFolder: document.getElementById('projectFolder').value,
+        modelPackage: document.getElementById('modelPackage').value,
+        modelPackageTargetFolder: document.getElementById('modelTargetFolder').value,
+        daoPackage: document.getElementById('daoPackage').value,
+        daoTargetFolder: document.getElementById('daoTargetFolder').value,
+        mappingXMLPackage: document.getElementById('mapperPackage').value,
+        mappingXMLTargetFolder: document.getElementById('mapperTargetFolder').value,
+        encoding: document.getElementById('encoding').value,
+        offsetLimit: document.getElementById('offsetLimit').checked,
+        comment: document.getElementById('comment').checked,
+        overrideXML: document.getElementById('overrideXML').checked,
+        useLombokPlugin: document.getElementById('useLombokPlugin').checked,
+        jsr310Support: document.getElementById('jsr310Support').checked
+    };
+    
+    try {
+        const response = await fetch('/api/generator-configs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        
+        if (response.ok) {
+            showMessage('配置保存成功!', 'success');
+        } else {
+            const result = await response.json();
+            showMessage('配置保存失败: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showMessage('配置保存失败: ' + error.message, 'error');
+    }
+}
+
+// 事件监听
+document.addEventListener('DOMContentLoaded', function() {
+    // 加载连接列表
+    loadConnections();
+    
+    // 新建连接按钮
+    document.getElementById('btnNewConnection').onclick = () => showConnectionModal();
+    
+    // 模态框关闭
+    document.querySelectorAll('.close, .close-modal').forEach(el => {
+        el.onclick = hideConnectionModal;
+    });
+    
+    // 点击模态框外部关闭
+    window.onclick = (event) => {
+        const modal = document.getElementById('connectionModal');
+        if (event.target === modal) {
+            hideConnectionModal();
+        }
+    };
+    
+    // 测试连接按钮
+    document.getElementById('btnTestConnection').onclick = testConnection;
+    
+    // 保存连接按钮
+    document.getElementById('btnSaveConnection').onclick = saveConnection;
+    
+    // 生成代码按钮
+    document.getElementById('btnGenerate').onclick = generateCode;
+    
+    // 保存配置按钮
+    document.getElementById('btnSaveConfig').onclick = saveConfig;
+    
+    // 表过滤
+    document.getElementById('tableFilter').oninput = (e) => {
+        loadTables(e.target.value);
+    };
+    
+    // 数据库类型变化时更新默认端口
+    document.getElementById('dbType').onchange = (e) => {
+        const port = e.target.value === 'MySQL' ? '3306' : '5432';
+        document.getElementById('port').value = port;
+    };
+});

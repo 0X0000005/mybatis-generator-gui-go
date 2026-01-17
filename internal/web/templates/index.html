@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyBatis Generator GUI - v{{.version}}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 MyBatis Generator GUI</h1>
+            <p class="version">版本: {{.version}}</p>
+        </header>
+
+        <div class="main-content">
+            <!-- 左侧：数据库连接管理 -->
+            <aside class="sidebar">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>数据库连接</h2>
+                        <button id="btnNewConnection" class="btn btn-primary">+ 新建连接</button>
+                    </div>
+                    <div id="connectionList" class="connection-list">
+                        <!-- 动态加载连接列表 -->
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>表列表</h3>
+                    <input type="text" id="tableFilter" placeholder="过滤表名..." class="form-input">
+                    <div id="tableList" class="table-list">
+                        <!-- 动态加载表列表 -->
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 右侧：代码生成配置 -->
+            <main class="content">
+                <div class="section">
+                    <h2>代码生成配置</h2>
+                    
+                    <form id="generatorForm">
+                        <div class="form-group">
+                            <label>项目目录</label>
+                            <input type="text" id="projectFolder" class="form-input" placeholder="例如: D:\project\mybatis-demo">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Model包名</label>
+                                <input type="text" id="modelPackage" class="form-input" placeholder="com.example.model">
+                            </div>
+                            <div class="form-group">
+                                <label>Model目标文件夹</label>
+                                <input type="text" id="modelTargetFolder" class="form-input" value="src/main/java">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>DAO包名</label>
+                                <input type="text" id="daoPackage" class="form-input" placeholder="com.example.mapper">
+                            </div>
+                            <div class="form-group">
+                                <label>DAO目标文件夹</label>
+                                <input type="text" id="daoTargetFolder" class="form-input" value="src/main/java">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Mapper包名</label>
+                                <input type="text" id="mapperPackage" class="form-input" placeholder="mapper">
+                            </div>
+                            <div class="form-group">
+                                <label>Mapper目标文件夹</label>
+                                <input type="text" id="mapperTargetFolder" class="form-input" value="src/main/resources">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>表名</label>
+                                <input type="text" id="tableName" class="form-input" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>实体类名</label>
+                                <input type="text" id="domainObjectName" class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Mapper名</label>
+                                <input type="text" id="mapperName" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label>主键字段</label>
+                                <input type="text" id="generateKeys" class="form-input" placeholder="id">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>编码格式</label>
+                            <select id="encoding" class="form-input">
+                                <option value="UTF-8" selected>UTF-8</option>
+                                <option value="GBK">GBK</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>生成选项</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" id="offsetLimit"> 生成分页查询</label>
+                                <label><input type="checkbox" id="comment" checked> 生成注释</label>
+                                <label><input type="checkbox" id="overrideXML"> 覆盖XML文件</label>
+                                <label><input type="checkbox" id="useLombokPlugin"> 使用Lombok</label>
+                                <label><input type="checkbox" id="jsr310Support"> 使用JSR310日期类型</label>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" id="btnGenerate" class="btn btn-success btn-lg">生成代码</button>
+                            <button type="button" id="btnSaveConfig" class="btn btn-secondary">保存配置</button>
+                        </div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 新建连接对话框 -->
+    <div id="connectionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="connectionModalTitle">新建数据库连接</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="connectionForm">
+                    <input type="hidden" id="connectionId">
+                    <div class="form-group">
+                        <label>连接名称 *</label>
+                        <input type="text" id="connectionName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>数据库类型 *</label>
+                        <select id="dbType" class="form-input" required>
+                            <option value="MySQL">MySQL</option>
+                            <option value="PostgreSQL">PostgreSQL</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>主机 *</label>
+                            <input type="text" id="host" class="form-input" value="localhost" required>
+                        </div>
+                        <div class="form-group">
+                            <label>端口 *</label>
+                            <input type="text" id="port" class="form-input" value="3306" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>数据库名 *</label>
+                        <input type="text" id="schema" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>用户名 *</label>
+                        <input type="text" id="username" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>密码 *</label>
+                        <input type="password" id="password" class="form-input" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btnTestConnection" class="btn btn-info">测试连接</button>
+                <button type="button" id="btnSaveConnection" class="btn btn-primary">保存</button>
+                <button type="button" class="btn btn-secondary close-modal">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

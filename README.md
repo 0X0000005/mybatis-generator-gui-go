@@ -2,21 +2,22 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Go-1.20+-00ADD8?style=flat&logo=go"/>
-  <img src="https://img.shields.io/badge/Fyne-2.0+-00ACD7?style=flat&logo=go"/>
+  <img src="https://img.shields.io/badge/Gin-Web-00ACD7?style=flat&logo=go"/>
   <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"/>
 </p>
 
-基于Go语言和Fyne框架开发的MyBatis代码生成器图形界面工具，用于快速生成MyBatis的Java实体类、Mapper接口和XML映射文件。
+基于Go语言和Gin框架开发的MyBatis代码生成器Web应用，用于快速生成MyBatis的Java实体类、Mapper接口和XML映射文件。
 
 ## ✨ 核心特性
 
-- 🎨 **现代化GUI** - 使用Fyne框架构建的跨平台桌面应用
+- 🌐 **Web界面** - 使用现代化Web技术，浏览器访问，无需安装
 - 🗄️ **数据库支持** - 支持MySQL和PostgreSQL数据库
 - 💾 **配置管理** - SQLite本地存储，保存数据库连接和生成配置
 - 🔄 **自动命名转换** - 数据库下划线命名自动转换为Java驼峰命名
 - 📝 **注释生成** - 从数据库列注释自动生成Java代码注释
 - 🎯 **灵活配置** - 支持Lombok、JSR310日期类型、分页查询等多种选项
 - 📦 **完整代码** - 一键生成Java实体类、Mapper接口和MyBatis XML文件
+- 🚀 **RESTful API** - 提供完整的REST API接口
 
 ## 🎯 功能列表
 
@@ -49,12 +50,12 @@
 ### 系统要求
 
 - Go 1.20或更高版本
-- Windows/Linux/MacOS操作系统
 - MySQL 5.7+或PostgreSQL 9.0+数据库（用于连接测试）
+- 现代浏览器（Chrome、Firefox、Edge等）
 
 ###  安装步骤
 
-#### 方式一：从源码编译
+#### 方式一：从源码运行
 
 ```bash
 # 1. 克隆仓库
@@ -64,33 +65,44 @@ cd mybatis-generator-gui-go
 # 2. 下载依赖
 go mod tidy
 
-# 3. Windows系统构建
+# 3. 运行程序
+go run cmd/main.go
+
+# 4. 浏览器访问
+# 打开浏览器访问: http://localhost:8080
+```
+
+#### 方式二：编译后运行
+
+```bash
+# Windows系统构建
 build\build_windows.bat
 
-# 4. Linux系统构建
+# Linux系统构建
 chmod +x build/build_linux.sh
 ./build/build_linux.sh
 
-# 5. 运行程序
+# 运行可执行文件
 # Windows: bin\mybatis-generator-gui-windows-amd64.exe
 # Linux: ./bin/mybatis-generator-gui-linux-amd64
-```
 
-#### 方式二：直接运行
-
-```bash
-# 安装依赖
-go mod tidy
-
-# 运行程序
-go run cmd/main.go
+# 浏览器访问
+# 打开浏览器访问: http://localhost:8080
 ```
 
 ## 📖 使用说明
 
-### 1. 创建数据库连接
+### 1. 启动应用
 
-1. 点击工具栏的"新建连接"按钮
+```bash
+go run cmd/main.go
+```
+
+应用启动后，在浏览器中访问：**http://localhost:8080**
+
+### 2. 创建数据库连接
+
+1. 点击左侧"+ 新建连接"按钮
 2. 填写数据库连接信息：
    - 连接名称：自定义名称，用于标识连接
    - 数据库类型：选择MySQL或PostgreSQL
@@ -101,19 +113,19 @@ go run cmd/main.go
 3. 点击"测试连接"按钮验证连接
 4. 点击"保存"保存连接配置
 
-### 2. 选择数据库表
+### 3. 选择数据库表
 
-1. 在左侧数据库树中点击已保存的连接
-2. 双击连接名称查看表列表
-3. 双击表名，右侧配置面板会自动填充表信息
+1. 在左侧连接列表中点击已保存的连接
+2. 表列表会自动加载
+3. 点击表名，右侧配置面板会自动填充表信息
 
-### 3. 配置代码生成选项
+### 4. 配置代码生成选项
 
-1. **项目目录**：选择Java项目的根目录
+1. **项目目录**：输入Java项目的根目录（例如：`D:\project\mybatis-demo`）
 2. **包名配置**：
-   - Model包名：实体类的包名（例如：com.example.model）
-   - DAO包名：Mapper接口的包名（例如：com.example.mapper）
-   - Mapper包名：XML文件的包名（例如：mapper）
+   - Model包名：实体类的包名（例如：`com.example.model`）
+   - DAO包名：Mapper接口的包名（例如：`com.example.mapper`）
+   - Mapper包名：XML文件的包名（例如：`mapper`）
 3. **目标文件夹**：
    - Model目标文件夹：通常为`src/main/java`
    - DAO目标文件夹：通常为`src/main/java`
@@ -124,14 +136,14 @@ go run cmd/main.go
 5. **选择生成选项**：勾选需要的选项（注释、Lombok、分页等）
 6. **编码格式**：选择生成文件的编码（推荐UTF-8）
 
-### 4. 生成代码
+### 5. 生成代码
 
 1. 确认所有配置无误
 2. 点击"生成代码"按钮
 3. 等待生成完成提示
 4. 到项目目录查看生成的文件
 
-### 5. 保存配置
+### 6. 保存配置
 
 点击"保存配置"按钮可以保存当前的代码生成配置，下次使用时可以快速加载。
 
@@ -232,7 +244,8 @@ public interface UserMapper {
 ## 🛠️ 技术栈
 
 - **语言**: Go 1.20+
-- **GUI框架**: Fyne v2.0+
+- **Web框架**: Gin v1.9+
+- **前端**: HTML5 + CSS3 + JavaScript (原生)
 - **数据库驱动**: 
   - MySQL: go-sql-driver/mysql
   - PostgreSQL: lib/pq  
@@ -244,7 +257,7 @@ public interface UserMapper {
 ```
 mybatis-generator-gui-go/
 ├── cmd/                        # 主程序入口
-│   └── main.go
+│   └── main.go                # Web服务器
 ├── internal/                   # 内部包
 │   ├── config/                # 配置管理
 │   │   ├── database_config.go  # 数据库配置模型
@@ -259,11 +272,15 @@ mybatis-generator-gui-go/
 │   │   ├── model_template.go   # Model模板
 │   │   ├── mapper_template.go  # Mapper模板
 │   │   └── mapper_xml_template.go # XML模板
-│   ├── ui/                    # 用户界面
-│   │   ├── main_window.go      # 主窗口
-│   │   ├── connection_manager.go # 连接管理
-│   │   ├── db_tree.go          # 数据库树
-│   │   └── config_panel.go     # 配置面板
+│   ├── api/                   # REST API
+│   │   ├── database_api.go     # 数据库API
+│   │   └── generator_api.go    # 代码生成API
+│   ├── web/                   # Web资源
+│   │   ├── templates/         # HTML模板
+│   │   │   └── index.html
+│   │   └── static/            # 静态资源
+│   │       ├── css/style.css
+│   │       └── js/app.js
 │   └── utils/                 # 工具函数
 │       └── string_utils.go     # 字符串处理
 ├── build/                     # 构建脚本

@@ -5,9 +5,7 @@ import (
 	"text/template"
 )
 
-func init() {
-	// 注册自定义模板函数
-	template.FuncMap{
-		"title": strings.Title,
-	}
+// TemplateFuncs 自定义模板函数
+var TemplateFuncs = template.FuncMap{
+	"title": strings.Title,
 }
