@@ -317,11 +317,6 @@ go test ./... -cover
 
 本项目采用 Apache 2.0 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 
-## 📞 联系方式
-
-- 项目主页: https://github.com/yourusername/mybatis-generator-gui-go
-- 问题反馈: https://github.com/yourusername/mybatis-generator-gui-go/issues
-
 ## 🙏 致谢
 
 本项目参考了原Java版本的 [mybatis-generator-gui](https://github.com/zouzg/mybatis-generator-gui) 项目。
