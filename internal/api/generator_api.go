@@ -3,10 +3,12 @@ package api
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/config"
@@ -34,11 +36,23 @@ func GenerateCode(c *gin.Context) {
 
 	log.Printf("INFO: 开始生成代码 - DatabaseID: %d, Table: %s", req.DatabaseID, req.Config.TableName)
 
-	// 如果ProjectFolder为空，使用临时目录
-	if req.Config.ProjectFolder == "" {
-		req.Config.ProjectFolder = filepath.Join(os.TempDir(), "mybatis-gen")
-		log.Printf("INFO: 使用默认临时目录: %s", req.Config.ProjectFolder)
+	// 获取当前工作目录
+	currentDir, err := os.Getwd()
+	if err != nil {
+		log.Printf("ERROR: 获取当前目录失败: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取当前目录失败"})
+		return
 	}
+
+	// 创建temp目录下的随机子目录（避免多用户冲突）
+	timestamp := time.Now().Format("20060102_150405")
+	randomSuffix := generateRandomString(8)
+	projectSubDir := fmt.Sprintf("gen_%s_%s", timestamp, randomSuffix)
+
+	tempBaseDir := filepath.Join(currentDir, "temp")
+	req.Config.ProjectFolder = filepath.Join(tempBaseDir, projectSubDir)
+
+	log.Printf("INFO: 使用临时目录: %s", req.Config.ProjectFolder)
 
 	// 加载数据库配置
 	configs, err := config.LoadDatabaseConfigs()
@@ -150,4 +164,14 @@ func getFileNames(files []string) []string {
 		names[i] = filepath.Base(file)
 	}
 	return names
+}
+
+// generateRandomString 生成随机字符串
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(result)
 }
