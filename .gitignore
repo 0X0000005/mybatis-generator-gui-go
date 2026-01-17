@@ -8,6 +8,8 @@
 *.exe
 mybatis-generator-gui-*
 !mybatis-generator-gui-go
+!mgg
+mgg*
 
 # 测试输出
 *.test
