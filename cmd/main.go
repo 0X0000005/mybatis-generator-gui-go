@@ -4,18 +4,27 @@ import (
 	"html/template"
 	"io/fs"
 	"log"
+	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/api"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/config"
+	"github.com/yourusername/mybatis-generator-gui-go/internal/generator" // Added by user instruction
 	"github.com/yourusername/mybatis-generator-gui-go/internal/web"
 )
 
 const version = "1.1.0"
 
 func main() {
-	// 初始化配置数据库
+	// 初始化随机种子
+	rand.Seed(time.Now().UnixNano())
+
+	// 启动ZIP文件清理任务
+	generator.StartCleanupScheduler()
+
+	// 设置Gin模式初始化配置数据库
 	if err := config.InitDatabase(); err != nil {
 		log.Fatalf("初始化数据库失败: %v", err)
 	}

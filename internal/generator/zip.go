@@ -4,19 +4,38 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+)
+
+const (
+	// TempDirName 临时目录名
+	TempDirName = "mgg_temp"
+	// FileExpireDuration 文件过期时间（30分钟）
+	FileExpireDuration = 30 * time.Minute
 )
 
 // CreateZipArchive 创建ZIP归档文件
-func CreateZipArchive(files []string, projectFolder string) (string, error) {
+func CreateZipArchive(files []string, projectFolder, tableName string) (string, error) {
 	if len(files) == 0 {
 		return "", fmt.Errorf("没有文件需要打包")
 	}
 
-	// 创建临时ZIP文件
-	zipPath := filepath.Join(os.TempDir(), fmt.Sprintf("mybatis-gen-%d.zip", os.Getpid()))
+	// 确保临时目录存在
+	tempDir := filepath.Join(os.TempDir(), TempDirName)
+	if err := os.MkdirAll(tempDir, 0755); err != nil {
+		return "", fmt.Errorf("创建临时目录失败: %v", err)
+	}
+
+	// 生成文件名：mgg_表名_时间戳_随机4位.zip
+	timestamp := time.Now().Format("20060102_150405")
+	rand.Seed(time.Now().UnixNano()) // Initialize random seed
+	random := generateRandomString(4)
+	zipName := fmt.Sprintf("mgg_%s_%s_%s.zip", tableName, timestamp, random)
+	zipPath := filepath.Join(tempDir, zipName)
 
 	// 创建ZIP文件
 	zipFile, err := os.Create(zipPath)
@@ -36,6 +55,16 @@ func CreateZipArchive(files []string, projectFolder string) (string, error) {
 	}
 
 	return zipPath, nil
+}
+
+// generateRandomString 生成随机字符串
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(result)
 }
 
 // addFileToZip 添加文件到ZIP归档
@@ -79,4 +108,53 @@ func addFileToZip(zipWriter *zip.Writer, filename string, basePath string) error
 	// 复制文件内容
 	_, err = io.Copy(writer, file)
 	return err
+}
+
+// CleanExpiredZips 清理过期的ZIP文件
+func CleanExpiredZips() {
+	tempDir := filepath.Join(os.TempDir(), TempDirName)
+
+	// 检查目录是否存在
+	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
+		return
+	}
+
+	// 读取目录中的所有文件
+	entries, err := os.ReadDir(tempDir)
+	if err != nil {
+		return
+	}
+
+	now := time.Now()
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		// 只处理mgg_开头的zip文件
+		if !strings.HasPrefix(entry.Name(), "mgg_") || !strings.HasSuffix(entry.Name(), ".zip") {
+			continue
+		}
+
+		filePath := filepath.Join(tempDir, entry.Name())
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		// 如果文件超过过期时间，删除它
+		if now.Sub(info.ModTime()) > FileExpireDuration {
+			os.Remove(filePath)
+		}
+	}
+}
+
+// StartCleanupScheduler 启动定时清理任务
+func StartCleanupScheduler() {
+	ticker := time.NewTicker(5 * time.Minute)
+	go func() {
+		for range ticker.C {
+			CleanExpiredZips()
+		}
+	}()
 }

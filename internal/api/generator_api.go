@@ -97,7 +97,7 @@ func GenerateCode(c *gin.Context) {
 	}
 
 	// 打包成ZIP
-	zipPath, err := generator.CreateZipArchive(files, req.Config.ProjectFolder)
+	zipPath, err := generator.CreateZipArchive(files, req.Config.ProjectFolder, req.Config.TableName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "打包失败: " + err.Error()})
 		return
