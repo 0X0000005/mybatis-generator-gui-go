@@ -1,14 +1,18 @@
 package main
 
 import (
+	"html/template"
+	"io/fs"
 	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/api"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/config"
+	"github.com/yourusername/mybatis-generator-gui-go/internal/web"
 )
 
-const version = "1.0.0"
+const version = "1.1.0"
 
 func main() {
 	// 初始化配置数据库
@@ -20,9 +24,16 @@ func main() {
 	// 创建Gin路由
 	r := gin.Default()
 
-	// 设置静态文件目录
-	r.Static("/static", "./internal/web/static")
-	r.LoadHTMLGlob("internal/web/templates/*")
+	// 加载嵌入的HTML模板
+	tmpl, err := template.ParseFS(web.TemplatesFS, "templates/*.html")
+	if err != nil {
+		log.Fatalf("加载模板失败: %v", err)
+	}
+	r.SetHTMLTemplate(tmpl)
+
+	// 设置静态文件服务（使用嵌入的文件系统）
+	staticSub, _ := fs.Sub(web.StaticFS, "static")
+	r.StaticFS("/static", http.FS(staticSub))
 
 	// 主页
 	r.GET("/", func(c *gin.Context) {
