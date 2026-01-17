@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MyBatis Generator GUI - v{{.version}}</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -39,11 +41,12 @@
             <main class="content">
                 <div class="section">
                     <h2>代码生成配置</h2>
-                    
+
                     <form id="generatorForm">
                         <div class="form-group">
                             <label>项目目录</label>
-                            <input type="text" id="projectFolder" class="form-input" placeholder="例如: D:\project\mybatis-demo">
+                            <input type="text" id="projectFolder" class="form-input"
+                                placeholder="例如: D:\project\mybatis-demo">
                         </div>
 
                         <div class="form-row">
@@ -75,7 +78,8 @@
                             </div>
                             <div class="form-group">
                                 <label>Mapper目标文件夹</label>
-                                <input type="text" id="mapperTargetFolder" class="form-input" value="src/main/resources">
+                                <input type="text" id="mapperTargetFolder" class="form-input"
+                                    value="src/main/resources">
                             </div>
                         </div>
 
@@ -138,14 +142,14 @@
                 <span class="close">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="connectionForm">
+                <form id="connectionForm" onsubmit="return false;">
                     <input type="hidden" id="connectionId">
                     <div class="form-group">
-                        <label>连接名称 *</label>
-                        <input type="text" id="connectionName" class="form-input" required>
+                        <label>连接名称 <span class="required">*</span></label>
+                        <input type="text" id="connectionName" class="form-input" required placeholder="例如: 开发环境MySQL">
                     </div>
                     <div class="form-group">
-                        <label>数据库类型 *</label>
+                        <label>数据库类型 <span class="required">*</span></label>
                         <select id="dbType" class="form-input" required>
                             <option value="MySQL">MySQL</option>
                             <option value="PostgreSQL">PostgreSQL</option>
@@ -153,26 +157,27 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>主机 *</label>
+                            <label>主机 <span class="required">*</span></label>
                             <input type="text" id="host" class="form-input" value="localhost" required>
                         </div>
                         <div class="form-group">
-                            <label>端口 *</label>
+                            <label>端口 <span class="required">*</span></label>
                             <input type="text" id="port" class="form-input" value="3306" required>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>数据库名 *</label>
-                        <input type="text" id="schema" class="form-input" required>
+                        <label>数据库名 <span class="required">*</span></label>
+                        <input type="text" id="schema" class="form-input" required placeholder="例如: test_db">
                     </div>
                     <div class="form-group">
-                        <label>用户名 *</label>
-                        <input type="text" id="username" class="form-input" required>
+                        <label>用户名 <span class="required">*</span></label>
+                        <input type="text" id="username" class="form-input" required placeholder="数据库用户名">
                     </div>
                     <div class="form-group">
-                        <label>密码 *</label>
-                        <input type="password" id="password" class="form-input" required>
+                        <label>密码 <span class="required">*</span></label>
+                        <input type="password" id="password" class="form-input" required placeholder="数据库密码">
                     </div>
+                    <p class="hint"><span class="required">*</span> 为必填项</p>
                 </form>
             </div>
             <div class="modal-footer">
@@ -185,4 +190,5 @@
 
     <script src="/static/js/app.js"></script>
 </body>
+
 </html>

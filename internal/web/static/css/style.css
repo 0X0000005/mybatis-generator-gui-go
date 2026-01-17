@@ -67,7 +67,8 @@ header h1 {
     margin-bottom: 15px;
 }
 
-.section h2, .section h3 {
+.section h2,
+.section h3 {
     color: #333;
     margin-bottom: 15px;
 }
@@ -184,7 +185,8 @@ header h1 {
     margin-top: 30px;
 }
 
-.connection-list, .table-list {
+.connection-list,
+.table-list {
     max-height: 300px;
     overflow-y: auto;
 }
@@ -239,8 +241,13 @@ header h1 {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .modal-content {
@@ -259,6 +266,7 @@ header h1 {
         transform: translateY(-50px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -312,6 +320,7 @@ header h1 {
         transform: translateY(-20px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -336,18 +345,32 @@ header h1 {
     border: 1px solid #bee5eb;
 }
 
+/* 必填标识 */
+.required {
+    color: #dc3545;
+    font-weight: bold;
+    margin-left: 2px;
+}
+
+.hint {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 10px;
+    font-style: italic;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .main-content {
         flex-direction: column;
     }
-    
+
     .sidebar {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid #dee2e6;
     }
-    
+
     .form-row {
         grid-template-columns: 1fr;
     }

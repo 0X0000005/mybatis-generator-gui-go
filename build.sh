@@ -10,12 +10,8 @@ echo "版本: $VERSION"
 echo "================================================"
 echo ""
 
-# 进入项目根目录
-cd "$(dirname "$0")/.."
-
 echo "[1/4] 清理旧文件..."
-rm -rf bin
-mkdir -p bin
+rm -f ${APP_NAME}-windows-amd64.exe ${APP_NAME}-linux-amd64
 
 echo ""
 echo "[2/4] 准备依赖包..."
@@ -27,7 +23,7 @@ fi
 
 echo ""
 echo "[3/4] 编译Linux版本..."
-GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=$VERSION" -o bin/${APP_NAME}-linux-amd64 ./cmd/main.go
+GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=$VERSION" -o ${APP_NAME}-linux-amd64 ./cmd/main.go
 if [ $? -ne 0 ]; then
     echo "错误: Linux编译失败"
     exit 1
@@ -36,7 +32,7 @@ echo "✓ Linux版本编译完成"
 
 echo ""
 echo "[4/4] 编译Windows版本..."
-GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -X main.version=$VERSION" -o bin/${APP_NAME}-windows-amd64.exe ./cmd/main.go
+GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -X main.version=$VERSION" -o ${APP_NAME}-windows-amd64.exe ./cmd/main.go
 if [ $? -ne 0 ]; then
     echo "错误: Windows编译失败"
     exit 1
@@ -47,9 +43,9 @@ echo ""
 echo "================================================"
 echo "构建完成!"
 echo "================================================"
-echo "Windows: bin/${APP_NAME}-windows-amd64.exe"
-echo "Linux:   bin/${APP_NAME}-linux-amd64"
+echo "Windows: ${APP_NAME}-windows-amd64.exe"
+echo "Linux:   ${APP_NAME}-linux-amd64"
 echo ""
-echo "启动命令 (Linux): ./bin/${APP_NAME}-linux-amd64"
+echo "启动命令 (Linux): ./${APP_NAME}-linux-amd64"
 echo "访问地址: http://localhost:8080"
 echo "================================================"

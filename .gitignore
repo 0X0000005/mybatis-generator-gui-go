@@ -1,24 +1,31 @@
 # 二进制文件
-bin/
 *.exe
 *.dll
 *.so
 *.dylib
 
-# 测试相关
+# 二进制文件
+*.exe
+mybatis-generator-gui-*
+!mybatis-generator-gui-go
+
+# 测试输出
 *.test
 *.out
-coverage.txt
+coverage.*
 
-# 依赖和缓存
+# build目录
+build/
+
+# vendor目录
 vendor/
-go.work
 
 # 数据库文件
 *.db
-config/*.db
+*.sqlite
+*.sqlite3
 
-# IDE
+# IDE配置
 .idea/
 .vscode/
 *.swp
