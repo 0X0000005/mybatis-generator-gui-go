@@ -75,16 +75,13 @@ go run cmd/main.go
 #### 方式二：编译后运行
 
 ```bash
-# Windows系统构建
-build\build_windows.bat
-
-# Linux系统构建
-chmod +x build/build_linux.sh
-./build/build_linux.sh
+# 编译（同时生成Windows和Linux版本）
+.\build.bat          # Windows
+./build.sh           # Linux
 
 # 运行可执行文件
-# Windows: bin\mybatis-generator-gui-windows-amd64.exe
-# Linux: ./bin/mybatis-generator-gui-linux-amd64
+.\mybatis-generator-gui-windows-amd64.exe    # Windows
+./mybatis-generator-gui-linux-amd64          # Linux
 
 # 浏览器访问
 # 打开浏览器访问: http://localhost:8080
@@ -256,39 +253,41 @@ public interface UserMapper {
 
 ```
 mybatis-generator-gui-go/
-├── cmd/                        # 主程序入口
-│   └── main.go                # Web服务器
-├── internal/                   # 内部包
-│   ├── config/                # 配置管理
+├── build.bat                  # Windows构建脚本
+├── build.sh                   # Linux构建脚本
+├── workflow.bat               # Windows完整工作流
+├── workflow.sh                # Linux完整工作流
+├── cmd/                       # 主程序入口
+│   └── main.go               # Web服务器
+├── internal/                  # 内部包
+│   ├── config/               # 配置管理
 │   │   ├── database_config.go  # 数据库配置模型
 │   │   ├── generator_config.go # 生成配置模型
 │   │   └── storage.go          # SQLite存储
-│   ├── database/              # 数据库操作
+│   ├── database/             # 数据库操作
 │   │   ├── connector.go        # 数据库连接
 │   │   ├── types.go            # 表结构类型
 │   │   └── type_mapping.go     # 类型映射
-│   ├── generator/             # 代码生成器
+│   ├── generator/            # 代码生成器
 │   │   ├── generator.go        # 生成器主逻辑
 │   │   ├── model_template.go   # Model模板
 │   │   ├── mapper_template.go  # Mapper模板
 │   │   └── mapper_xml_template.go # XML模板
-│   ├── api/                   # REST API
+│   ├── api/                  # REST API
 │   │   ├── database_api.go     # 数据库API
 │   │   └── generator_api.go    # 代码生成API
-│   ├── web/                   # Web资源
+│   ├── web/                  # Web资源
+│   │   ├── embed.go           # 资源嵌入
 │   │   ├── templates/         # HTML模板
 │   │   │   └── index.html
 │   │   └── static/            # 静态资源
 │   │       ├── css/style.css
 │   │       └── js/app.js
-│   └── utils/                 # 工具函数
+│   └── utils/                # 工具函数
 │       └── string_utils.go     # 字符串处理
-├── build/                     # 构建脚本
-│   ├── build_windows.bat      # Windows构建
-│   └── build_linux.sh         # Linux构建
-├── resources/                 # 资源文件
-├── go.mod                     # Go模块定义
-└── README.md                  # 本文件
+├── resources/                # 资源文件
+├── go.mod                    # Go模块定义
+└── README.md                 # 本文件
 ```
 
 ## 🧪 运行测试
