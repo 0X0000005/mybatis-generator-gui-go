@@ -217,32 +217,36 @@ async function saveConnection() {
     }
 }
 
-// 编辑数据库连接
+// 编辑连接
 async function editConnection(id) {
     try {
         const response = await fetch('/api/connections');
         const connections = await response.json();
-        const conn = connections.find(c => c.id === id);
+        const connection = connections.find(c => c.id === id);
 
-        if (!conn) {
+        if (!connection) {
             showMessage('连接不存在', 'error');
             return;
         }
 
-        // 填充表单
-        document.getElementById('connectionId').value = conn.id;
-        document.getElementById('connectionName').value = conn.name;
-        document.getElementById('dbType').value = conn.dbType;
-        document.getElementById('host').value = conn.host;
-        document.getElementById('port').value = conn.port;
-        document.getElementById('username').value = conn.username;
-        document.getElementById('password').value = conn.password;
-        document.getElementById('schema').value = conn.schema;
-        document.getElementById('encoding').value = conn.encoding || 'utf8mb4';
+        // 填充表单字段
+        document.getElementById('connectionId').value = connection.id; // Keep this for identifying the connection
+        document.getElementById('connectionName').value = connection.name || '';
+        document.getElementById('dbType').value = connection.dbType || 'MySQL'; // Default to MySQL if not set
+        document.getElementById('host').value = connection.host || '';
+        document.getElementById('port').value = connection.port || '';
+        document.getElementById('schema').value = connection.schema || '';
+        document.getElementById('username').value = connection.username || '';
+        document.getElementById('password').value = connection.password || '';
+        document.getElementById('encoding').value = connection.encoding || 'utf8mb4';
 
-        showConnectionModal();
+        // Update modal title
+        document.getElementById('connectionModalTitle').textContent = '编辑数据库连接';
+
+        // Show modal
+        showConnectionModal(connection); // Pass connection object to showConnectionModal
     } catch (error) {
-        showMessage('加载连接失败: ' + error.message, 'error');
+        showMessage('加载连接信息失败: ' + error.message, 'error');
     }
 }
 
