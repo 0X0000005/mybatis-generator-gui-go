@@ -437,6 +437,15 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('port').value = port;
     };
 
+    // @JsonProperty 选项切换时显示/隐藏首字母大写选项
+    document.getElementById('useJsonProperty').onchange = (e) => {
+        const jsonPropertyOptions = document.getElementById('jsonPropertyOptions');
+        jsonPropertyOptions.style.display = e.target.checked ? 'inline' : 'none';
+        if (!e.target.checked) {
+            document.getElementById('jsonPropertyUpperCase').checked = false;
+        }
+    };
+
     // ESC键关闭模态框
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
