@@ -31,4 +31,5 @@ type GeneratorConfig struct {
 	UseDAOExtendStyle          bool `json:"useDAOExtendStyle"`          // 是否使用DAO扩展风格
 	UseSchemaPrefix            bool `json:"useSchemaPrefix"`            // 是否使用Schema前缀
 	JSR310Support              bool `json:"jsr310Support"`              // 是否支持JSR310日期类型
+	UseJsonProperty            bool `json:"useJsonProperty"`            // 是否使用@JsonProperty注解
 }

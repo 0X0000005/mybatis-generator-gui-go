@@ -6,15 +6,17 @@ const modelTemplate = `package {{.Package}};
 import java.io.Serializable;
 {{range .Imports}}import {{.}};
 {{end}}
-
-/**
+{{if .UseJsonProperty}}import com.fasterxml.jackson.annotation.JsonProperty;
+{{end}}
+{{if .TableComment}}/**
  * {{.TableComment}}
  */
-public class {{.ClassName}} implements Serializable {
+{{end}}public class {{.ClassName}} implements Serializable {
     private static final long serialVersionUID = 1L;
 {{range .Fields}}
-    /** {{.Comment}} */
-    private {{.FieldType}} {{.FieldName}};
+{{if .Comment}}    /** {{.Comment}} */
+{{end}}{{if $.UseJsonProperty}}    @JsonProperty("{{.ColumnName}}")
+{{end}}    private {{.FieldType}} {{.FieldName}};
 {{end}}
 {{range .Fields}}
     public {{.FieldType}} get{{title .FieldName}}() {
@@ -24,8 +26,7 @@ public class {{.ClassName}} implements Serializable {
     public void set{{title .FieldName}}({{.FieldType}} {{.FieldName}}) {
         this.{{.FieldName}} = {{.FieldName}};
     }
-{{end}}
-}
+{{end}}}
 `
 
 // modelLombokTemplate Lombok风格Model模板
@@ -35,16 +36,17 @@ import lombok.Data;
 import java.io.Serializable;
 {{range .Imports}}import {{.}};
 {{end}}
-
-/**
+{{if .UseJsonProperty}}import com.fasterxml.jackson.annotation.JsonProperty;
+{{end}}
+{{if .TableComment}}/**
  * {{.TableComment}}
  */
-@Data
+{{end}}@Data
 public class {{.ClassName}} implements Serializable {
     private static final long serialVersionUID = 1L;
 {{range .Fields}}
-    /** {{.Comment}} */
-    private {{.FieldType}} {{.FieldName}};
-{{end}}
-}
+{{if .Comment}}    /** {{.Comment}} */
+{{end}}{{if $.UseJsonProperty}}    @JsonProperty("{{.ColumnName}}")
+{{end}}    private {{.FieldType}} {{.FieldName}};
+{{end}}}
 `

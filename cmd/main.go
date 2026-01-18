@@ -1,23 +1,53 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/api"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/config"
-	"github.com/yourusername/mybatis-generator-gui-go/internal/generator" // Added by user instruction
+	"github.com/yourusername/mybatis-generator-gui-go/internal/generator"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/web"
 )
 
-const version = "1.2.0"
+const version = "1.3.0"
 
 func main() {
+	// 解析命令行参数
+	port := flag.Int("p", 8080, "服务器端口号")
+	showVersion := flag.Bool("v", false, "显示版本号")
+	showHelp := flag.Bool("h", false, "显示帮助信息")
+	flag.Parse()
+
+	// 显示版本号
+	if *showVersion {
+		fmt.Printf("MyBatis Generator GUI v%s\n", version)
+		os.Exit(0)
+	}
+
+	// 显示帮助信息
+	if *showHelp {
+		fmt.Printf("MyBatis Generator GUI v%s\n\n", version)
+		fmt.Println("用法: mybatis-generator-gui [选项]")
+		fmt.Println()
+		fmt.Println("选项:")
+		fmt.Println("  -p <端口>   指定服务器端口号 (默认: 8080)")
+		fmt.Println("  -v          显示版本号")
+		fmt.Println("  -h          显示帮助信息")
+		fmt.Println()
+		fmt.Println("示例:")
+		fmt.Println("  mybatis-generator-gui -p 9090")
+		os.Exit(0)
+	}
+
 	// 初始化随机种子
 	rand.Seed(time.Now().UnixNano())
 
@@ -85,11 +115,12 @@ func main() {
 	}
 
 	// 启动服务器
+	addr := fmt.Sprintf(":%d", *port)
 	log.Printf("MyBatis Generator GUI 启动成功!")
-	log.Printf("访问地址: http://localhost:8080")
+	log.Printf("访问地址: http://localhost%s", addr)
 	log.Printf("版本: %s", version)
 
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run(addr); err != nil {
 		log.Fatalf("服务器启动失败: %v", err)
 	}
 }
