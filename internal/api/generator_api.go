@@ -35,6 +35,8 @@ func GenerateCode(c *gin.Context) {
 	}
 
 	log.Printf("INFO: 开始生成代码 - DatabaseID: %d, Table: %s", req.DatabaseID, req.Config.TableName)
+	log.Printf("INFO: 配置 - Package: %s, UseJsonProperty: %v, JsonPropertyUpperCase: %v",
+		req.Config.ModelPackage, req.Config.UseJsonProperty, req.Config.JsonPropertyUpperCase)
 
 	// 获取当前工作目录
 	currentDir, err := os.Getwd()
@@ -99,8 +101,8 @@ func GenerateCode(c *gin.Context) {
 
 	log.Printf("INFO: ZIP文件已创建: %s", zipPath)
 
-	// 生成唯一的下载ID并存储映射
-	downloadID := fmt.Sprintf("%d_%s", req.DatabaseID, req.Config.TableName)
+	// 生成唯一的下载ID并存储映射（添加随机字符串避免缓存）
+	downloadID := fmt.Sprintf("%d_%s_%s", req.DatabaseID, req.Config.TableName, generateRandomString(8))
 
 	generatedZipsMu.Lock()
 	generatedZips[downloadID] = zipPath

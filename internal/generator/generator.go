@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -78,15 +79,22 @@ func (g *Generator) Generate() ([]string, error) {
 
 // generateModel 生成Java Model类
 func (g *Generator) generateModel(columns []*database.TableColumn, tableComment string) (string, error) {
+	log.Printf("[Generator] 开始生成Model - 配置: Package=%s, UseLombok=%v, UseJsonProperty=%v, JsonPropertyUpperCase=%v",
+		g.config.ModelPackage, g.config.UseLombokPlugin, g.config.UseJsonProperty, g.config.JsonPropertyUpperCase)
+
 	// 准备模板数据
 	data := g.prepareModelData(columns, tableComment)
+	log.Printf("[Generator] 模板数据准备完成 - ClassName=%s, Package=%s, UseJsonProperty=%v, JsonPropertyUpperCase=%v, Fields=%d",
+		data.ClassName, data.Package, data.UseJsonProperty, data.JsonPropertyUpperCase, len(data.Fields))
 
 	// 选择模板
 	var tmpl *template.Template
 	var err error
 	if g.config.UseLombokPlugin {
+		log.Printf("[Generator] 使用Lombok模板")
 		tmpl, err = template.New("model").Funcs(TemplateFuncs).Parse(modelLombokTemplate)
 	} else {
+		log.Printf("[Generator] 使用标准模板")
 		tmpl, err = template.New("model").Funcs(TemplateFuncs).Parse(modelTemplate)
 	}
 	if err != nil {
@@ -95,6 +103,7 @@ func (g *Generator) generateModel(columns []*database.TableColumn, tableComment 
 
 	// 生成文件路径
 	filePath := g.getModelFilePath()
+	log.Printf("[Generator] 生成文件路径: %s", filePath)
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
 		return "", fmt.Errorf("创建目录失败: %v", err)
 	}
@@ -111,6 +120,7 @@ func (g *Generator) generateModel(columns []*database.TableColumn, tableComment 
 		return "", fmt.Errorf("执行模板失败: %v", err)
 	}
 
+	log.Printf("[Generator] Model生成成功: %s", filePath)
 	return filePath, nil
 }
 

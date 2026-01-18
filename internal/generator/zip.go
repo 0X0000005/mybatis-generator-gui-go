@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -22,6 +23,11 @@ const (
 func CreateZipArchive(files []string, projectFolder, tableName string) (string, error) {
 	if len(files) == 0 {
 		return "", fmt.Errorf("没有文件需要打包")
+	}
+
+	log.Printf("[ZIP] 开始创建ZIP - 共 %d 个文件, projectFolder=%s", len(files), projectFolder)
+	for i, f := range files {
+		log.Printf("[ZIP] 文件[%d]: %s", i, f)
 	}
 
 	// 获取当前工作目录
@@ -48,17 +54,34 @@ func CreateZipArchive(files []string, projectFolder, tableName string) (string, 
 	if err != nil {
 		return "", fmt.Errorf("创建ZIP文件失败: %v", err)
 	}
-	defer zipFile.Close()
 
 	zipWriter := zip.NewWriter(zipFile)
-	defer zipWriter.Close()
 
 	// 添加每个文件到ZIP
 	for _, file := range files {
+		log.Printf("[ZIP] 添加文件到ZIP: %s", file)
 		if err := addFileToZip(zipWriter, file, projectFolder); err != nil {
+			zipWriter.Close()
+			zipFile.Close()
 			return "", err
 		}
 	}
+
+	// 必须在返回前显式关闭，确保数据完整写入
+	if err := zipWriter.Close(); err != nil {
+		zipFile.Close()
+		return "", fmt.Errorf("关闭ZIP写入器失败: %v", err)
+	}
+	if err := zipFile.Close(); err != nil {
+		return "", fmt.Errorf("关闭ZIP文件失败: %v", err)
+	}
+
+	// 验证ZIP文件大小
+	info, err := os.Stat(zipPath)
+	if err != nil {
+		return "", fmt.Errorf("获取ZIP文件信息失败: %v", err)
+	}
+	log.Printf("[ZIP] ZIP创建完成: %s, 大小: %d bytes", zipPath, info.Size())
 
 	return zipPath, nil
 }
@@ -116,7 +139,7 @@ func addFileToZip(zipWriter *zip.Writer, filename string, basePath string) error
 	return err
 }
 
-// CleanExpiredZips 清理过期的ZIP文件
+// CleanExpiredZips 清理过期的ZIP文件和临时目录
 func CleanExpiredZips() {
 	// 获取当前工作目录
 	currentDir, err := os.Getwd()
@@ -131,7 +154,7 @@ func CleanExpiredZips() {
 		return
 	}
 
-	// 读取目录中的所有文件
+	// 读取目录中的所有文件和目录
 	entries, err := os.ReadDir(tempDir)
 	if err != nil {
 		return
@@ -139,24 +162,27 @@ func CleanExpiredZips() {
 
 	now := time.Now()
 	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		// 只处理mgg_开头的zip文件
-		if !strings.HasPrefix(entry.Name(), "mgg_") || !strings.HasSuffix(entry.Name(), ".zip") {
-			continue
-		}
-
-		filePath := filepath.Join(tempDir, entry.Name())
+		entryPath := filepath.Join(tempDir, entry.Name())
 		info, err := entry.Info()
 		if err != nil {
 			continue
 		}
 
-		// 如果文件超过过期时间，删除它
+		// 如果超过过期时间
 		if now.Sub(info.ModTime()) > FileExpireDuration {
-			os.Remove(filePath)
+			if entry.IsDir() {
+				// 清理 gen_ 开头的目录
+				if strings.HasPrefix(entry.Name(), "gen_") {
+					os.RemoveAll(entryPath)
+					log.Printf("[清理] 删除过期目录: %s", entry.Name())
+				}
+			} else {
+				// 清理 mgg_ 开头的 zip 文件
+				if strings.HasPrefix(entry.Name(), "mgg_") && strings.HasSuffix(entry.Name(), ".zip") {
+					os.Remove(entryPath)
+					log.Printf("[清理] 删除过期文件: %s", entry.Name())
+				}
+			}
 		}
 	}
 }
