@@ -15,8 +15,9 @@ import java.io.Serializable;
     private static final long serialVersionUID = 1L;
 {{range .Fields}}
 {{if .Comment}}    /** {{.Comment}} */
-{{end}}{{if $.UseJsonProperty}}    @JsonProperty("{{.ColumnName}}")
-{{end}}    private {{.FieldType}} {{.FieldName}};
+{{end}}{{if $.UseJsonProperty}}{{if $.JsonPropertyUpperCase}}    @JsonProperty("{{title .ColumnName}}")
+{{else}}    @JsonProperty("{{.ColumnName}}")
+{{end}}{{end}}    private {{.FieldType}} {{.FieldName}};
 {{end}}
 {{range .Fields}}
     public {{.FieldType}} get{{title .FieldName}}() {
@@ -46,7 +47,8 @@ public class {{.ClassName}} implements Serializable {
     private static final long serialVersionUID = 1L;
 {{range .Fields}}
 {{if .Comment}}    /** {{.Comment}} */
-{{end}}{{if $.UseJsonProperty}}    @JsonProperty("{{.ColumnName}}")
-{{end}}    private {{.FieldType}} {{.FieldName}};
+{{end}}{{if $.UseJsonProperty}}{{if $.JsonPropertyUpperCase}}    @JsonProperty("{{title .ColumnName}}")
+{{else}}    @JsonProperty("{{.ColumnName}}")
+{{end}}{{end}}    private {{.FieldType}} {{.FieldName}};
 {{end}}}
 `

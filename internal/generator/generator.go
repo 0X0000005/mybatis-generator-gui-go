@@ -196,22 +196,24 @@ type ModelField struct {
 
 // ModelData Model模板数据
 type ModelData struct {
-	Package         string
-	ClassName       string
-	TableComment    string
-	Fields          []*ModelField
-	Imports         []string
-	UseJsonProperty bool
+	Package               string
+	ClassName             string
+	TableComment          string
+	Fields                []*ModelField
+	Imports               []string
+	UseJsonProperty       bool
+	JsonPropertyUpperCase bool
 }
 
 // prepareModelData 准备Model模板数据
 func (g *Generator) prepareModelData(columns []*database.TableColumn, tableComment string) *ModelData {
 	data := &ModelData{
-		Package:         g.config.ModelPackage,
-		ClassName:       g.config.DomainObjectName,
-		TableComment:    tableComment,
-		Fields:          make([]*ModelField, 0),
-		UseJsonProperty: g.config.UseJsonProperty,
+		Package:               g.config.ModelPackage,
+		ClassName:             g.config.DomainObjectName,
+		TableComment:          tableComment,
+		Fields:                make([]*ModelField, 0),
+		UseJsonProperty:       g.config.UseJsonProperty,
+		JsonPropertyUpperCase: g.config.JsonPropertyUpperCase,
 	}
 
 	imports := make(map[string]bool)
