@@ -306,7 +306,8 @@ async function generateCode() {
         comment: document.getElementById('comment').checked,
         overrideXML: document.getElementById('overrideXML').checked,
         useLombokPlugin: document.getElementById('useLombokPlugin').checked,
-        jsr310Support: document.getElementById('jsr310Support').checked
+        jsr310Support: document.getElementById('jsr310Support').checked,
+        useJsonProperty: document.getElementById('useJsonProperty').checked
     };
 
     try {
@@ -363,7 +364,8 @@ async function saveConfig() {
         comment: document.getElementById('comment').checked,
         overrideXML: document.getElementById('overrideXML').checked,
         useLombokPlugin: document.getElementById('useLombokPlugin').checked,
-        jsr310Support: document.getElementById('jsr310Support').checked
+        jsr310Support: document.getElementById('jsr310Support').checked,
+        useJsonProperty: document.getElementById('useJsonProperty').checked
     };
 
     try {
