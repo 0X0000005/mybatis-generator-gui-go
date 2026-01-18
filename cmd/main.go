@@ -15,7 +15,7 @@ import (
 	"github.com/yourusername/mybatis-generator-gui-go/internal/web"
 )
 
-const version = "1.1.0"
+const version = "1.2.0"
 
 func main() {
 	// 初始化随机种子
@@ -44,15 +44,19 @@ func main() {
 	staticSub, _ := fs.Sub(web.StaticFS, "static")
 	r.StaticFS("/static", http.FS(staticSub))
 
-	// 主页
+	// 登录相关路由
+	r.GET("/login", api.HandleLoginPage)
+	r.POST("/api/login", api.HandleLoginAPI)
+	r.GET("/logout", api.HandleLogout)
+
+	// 主页（需要认证）
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(200, "index.html", gin.H{
-			"version": version,
-		})
+		api.HandleIndexWithAuth(c, version)
 	})
 
-	// API路由组
+	// API路由组（需要认证）
 	apiGroup := r.Group("/api")
+	apiGroup.Use(api.AuthMiddleware())
 	{
 		// 数据库连接管理
 		apiGroup.GET("/connections", api.GetConnections)

@@ -13,7 +13,13 @@
     <div id="message" class="message"></div>
 
     <div class="container">
-        <header>
+        <header style="position: relative;">
+            <div style="position: absolute; right: 10px; top: 10px;">
+                <a href="/logout"
+                    style="color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.9rem; background: rgba(0,0,0,0.2); padding: 6px 15px; border-radius: 20px; transition: all 0.3s ease;">
+                    退出登录 🚪
+                </a>
+            </div>
             <h1>🚀 MyBatis Generator GUI</h1>
             <p class="version">版本: {{.version}}</p>
         </header>
