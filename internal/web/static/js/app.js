@@ -308,7 +308,9 @@ async function generateCode() {
         useLombokPlugin: document.getElementById('useLombokPlugin').checked,
         jsr310Support: document.getElementById('jsr310Support').checked,
         useJsonProperty: document.getElementById('useJsonProperty').checked,
-        jsonPropertyUpperCase: document.getElementById('jsonPropertyUpperCase').checked
+        jsonPropertyUpperCase: document.getElementById('jsonPropertyUpperCase').checked,
+        useBatchInsert: document.getElementById('useBatchInsert').checked,
+        useBatchUpdate: document.getElementById('useBatchUpdate').checked
     };
 
     try {
@@ -367,7 +369,9 @@ async function saveConfig() {
         useLombokPlugin: document.getElementById('useLombokPlugin').checked,
         jsr310Support: document.getElementById('jsr310Support').checked,
         useJsonProperty: document.getElementById('useJsonProperty').checked,
-        jsonPropertyUpperCase: document.getElementById('jsonPropertyUpperCase').checked
+        jsonPropertyUpperCase: document.getElementById('jsonPropertyUpperCase').checked,
+        useBatchInsert: document.getElementById('useBatchInsert').checked,
+        useBatchUpdate: document.getElementById('useBatchUpdate').checked
     };
 
     try {

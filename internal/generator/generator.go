@@ -321,24 +321,28 @@ func (g *Generator) getMapperXMLFilePath() string {
 
 // MapperData Mapper模板数据
 type MapperData struct {
-	Package      string
-	MapperName   string
-	ModelPackage string
-	ModelName    string
-	PrimaryKey   *ModelField
-	UseExample   bool
-	OffsetLimit  bool
+	Package        string
+	MapperName     string
+	ModelPackage   string
+	ModelName      string
+	PrimaryKey     *ModelField
+	UseExample     bool
+	OffsetLimit    bool
+	UseBatchInsert bool
+	UseBatchUpdate bool
 }
 
 // prepareMapperData 准备Mapper模板数据
 func (g *Generator) prepareMapperData(columns []*database.TableColumn) *MapperData {
 	data := &MapperData{
-		Package:      g.config.DaoPackage,
-		MapperName:   g.config.MapperName,
-		ModelPackage: g.config.ModelPackage,
-		ModelName:    g.config.DomainObjectName,
-		UseExample:   g.config.UseExample,
-		OffsetLimit:  g.config.OffsetLimit,
+		Package:        g.config.DaoPackage,
+		MapperName:     g.config.MapperName,
+		ModelPackage:   g.config.ModelPackage,
+		ModelName:      g.config.DomainObjectName,
+		UseExample:     g.config.UseExample,
+		OffsetLimit:    g.config.OffsetLimit,
+		UseBatchInsert: g.config.UseBatchInsert,
+		UseBatchUpdate: g.config.UseBatchUpdate,
 	}
 
 	if data.MapperName == "" {
@@ -372,6 +376,8 @@ type MapperXMLData struct {
 	OffsetLimit      bool
 	UseGeneratedKeys bool
 	GenerateKeys     string
+	UseBatchInsert   bool
+	UseBatchUpdate   bool
 }
 
 // ColumnMapping 列映射
@@ -397,6 +403,8 @@ func (g *Generator) prepareMapperXMLData(columns []*database.TableColumn) *Mappe
 		OffsetLimit:      g.config.OffsetLimit,
 		UseGeneratedKeys: g.config.GenerateKeys != "",
 		GenerateKeys:     g.config.GenerateKeys,
+		UseBatchInsert:   g.config.UseBatchInsert,
+		UseBatchUpdate:   g.config.UseBatchUpdate,
 	}
 
 	for _, col := range columns {

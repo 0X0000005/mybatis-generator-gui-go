@@ -33,4 +33,6 @@ type GeneratorConfig struct {
 	JSR310Support              bool `json:"jsr310Support"`              // 是否支持JSR310日期类型
 	UseJsonProperty            bool `json:"useJsonProperty"`            // 是否使用@JsonProperty注解
 	JsonPropertyUpperCase      bool `json:"jsonPropertyUpperCase"`      // @JsonProperty首字母大写
+	UseBatchInsert             bool `json:"useBatchInsert"`             // 是否生成批量插入
+	UseBatchUpdate             bool `json:"useBatchUpdate"`             // 是否生成批量更新
 }

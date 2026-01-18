@@ -80,5 +80,28 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
         LIMIT #{offset}, #{limit}
     </select>
 {{end}}
+{{if .UseBatchInsert}}
+    <!-- 批量插入 -->
+    <insert id="insertBatch" parameterType="java.util.List"{{if .UseGeneratedKeys}} useGeneratedKeys="true" keyProperty="{{.GenerateKeys}}"{{end}}>
+        INSERT INTO {{.TableName}} (
+            {{range $index, $col := .Columns}}{{if ne $col.ColumnName $.PrimaryKey.ColumnName}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}{{end}}
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            ({{range $index, $col := .Columns}}{{if ne $col.ColumnName $.PrimaryKey.ColumnName}}{{if $index}}, {{end}}#{{"{"}}{{"item."}}{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}})
+        </foreach>
+    </insert>
+{{end}}
+{{if .UseBatchUpdate}}
+    <!-- 批量更新 -->
+    <update id="updateBatch" parameterType="java.util.List">
+        <foreach collection="list" item="item" separator=";">
+            UPDATE {{.TableName}}
+            SET {{range $index, $col := .Columns}}{{if ne $col.ColumnName $.PrimaryKey.ColumnName}}{{if $index}},
+                {{end}}{{$col.ColumnName}} = #{{"{"}}{{"item."}}{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}}
+            WHERE {{.PrimaryKey.ColumnName}} = #{{"{"}}{{"item."}}{{.PrimaryKey.FieldName}},jdbcType={{.PrimaryKey.JdbcType}}{{"}"}}
+        </foreach>
+    </update>
+{{end}}
 </mapper>
 `

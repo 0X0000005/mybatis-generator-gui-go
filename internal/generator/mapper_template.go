@@ -46,5 +46,17 @@ public interface {{.MapperName}} {
      */
     List<{{.ModelName}}> selectByPage(@Param("offset") int offset, @Param("limit") int limit);
 {{end}}
+{{if .UseBatchInsert}}
+    /**
+     * 批量插入
+     */
+    int insertBatch(@Param("list") List<{{.ModelName}}> list);
+{{end}}
+{{if .UseBatchUpdate}}
+    /**
+     * 批量更新
+     */
+    int updateBatch(@Param("list") List<{{.ModelName}}> list);
+{{end}}
 }
 `
