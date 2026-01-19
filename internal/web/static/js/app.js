@@ -408,7 +408,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.close').forEach(el => {
         el.onclick = function (e) {
             e.stopPropagation();
-            hideConnectionModal();
+            // 根据父级弹窗决定调用哪个关闭函数
+            if (el.closest('#columnModal')) {
+                hideColumnModal();
+            } else {
+                hideConnectionModal();
+            }
         };
     });
 
@@ -507,11 +512,34 @@ async function showColumnModal() {
                 </td>
                 <td style="padding: 8px; border: 1px solid #ddd;">
                     <input type="text" class="col-javatype" data-column="${col.columnName}" 
-                           value="${override.javaType || ''}" placeholder="默认自动推断" style="width: 100%;">
+                           value="${override.javaType || ''}" placeholder="默认自动推断" style="width: 100%;" list="javaTypeList">
                 </td>
             `;
             tbody.appendChild(row);
         });
+
+        // 添加 Java 类型下拉选项（如果不存在）
+        if (!document.getElementById('javaTypeList')) {
+            const datalist = document.createElement('datalist');
+            datalist.id = 'javaTypeList';
+            datalist.innerHTML = `
+                <option value="String">
+                <option value="Integer">
+                <option value="Long">
+                <option value="Double">
+                <option value="Float">
+                <option value="BigDecimal">
+                <option value="Boolean">
+                <option value="Date">
+                <option value="LocalDate">
+                <option value="LocalDateTime">
+                <option value="LocalTime">
+                <option value="byte[]">
+                <option value="Byte">
+                <option value="Short">
+            `;
+            document.body.appendChild(datalist);
+        }
 
         document.getElementById('columnModal').style.display = 'block';
     } catch (error) {
