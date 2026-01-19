@@ -4,10 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	_ "modernc.org/sqlite" // SQLite驱动
 	"os"
 	"path/filepath"
-
-	_ "github.com/mattn/go-sqlite3" // SQLite驱动
 )
 
 const (
@@ -28,7 +27,7 @@ func InitDatabase() error {
 
 	// 打开SQLite数据库
 	var err error
-	db, err = sql.Open("sqlite3", dbPath)
+	db, err = sql.Open("sqlite", dbPath)
 	if err != nil {
 		return fmt.Errorf("打开数据库失败: %v", err)
 	}
