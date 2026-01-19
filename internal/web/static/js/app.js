@@ -312,7 +312,9 @@ async function generateCode() {
         useJsonProperty: document.getElementById('useJsonProperty').checked,
         jsonPropertyUpperCase: document.getElementById('jsonPropertyUpperCase').checked,
         useBatchInsert: document.getElementById('useBatchInsert').checked,
-        useBatchUpdate: document.getElementById('useBatchUpdate').checked
+        useBatchUpdate: document.getElementById('useBatchUpdate').checked,
+        ignoredColumns: ignoredColumns,
+        columnOverrides: columnOverrides
     };
 
     try {
