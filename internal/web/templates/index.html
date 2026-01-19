@@ -137,6 +137,7 @@
                         </div>
 
                         <div class="form-actions">
+                            <button type="button" id="btnCustomizeColumns" class="btn btn-info">定制列</button>
                             <button type="button" id="btnGenerate" class="btn btn-success btn-lg">生成代码</button>
                             <button type="button" id="btnSaveConfig" class="btn btn-secondary">保存配置</button>
                         </div>
@@ -196,6 +197,41 @@
                 <button type="button" id="btnTestConnection" class="btn btn-info">测试连接</button>
                 <button type="button" id="btnSaveConnection" class="btn btn-primary">保存</button>
                 <button type="button" class="btn btn-secondary close-modal">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 列定制对话框 -->
+    <div id="columnModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>定制列</h3>
+                <span class="close" onclick="hideColumnModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p style="color: #666; margin-bottom: 15px;">
+                    勾选"忽略"将不生成该列。自定义属性名/类型可覆盖默认值。
+                </p>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table id="columnTable" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="padding: 8px; border: 1px solid #ddd;">忽略</th>
+                                <th style="padding: 8px; border: 1px solid #ddd;">列名</th>
+                                <th style="padding: 8px; border: 1px solid #ddd;">类型</th>
+                                <th style="padding: 8px; border: 1px solid #ddd;">自定义属性名</th>
+                                <th style="padding: 8px; border: 1px solid #ddd;">自定义Java类型</th>
+                            </tr>
+                        </thead>
+                        <tbody id="columnTableBody">
+                            <!-- 动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btnApplyColumns" class="btn btn-primary">应用</button>
+                <button type="button" class="btn btn-secondary" onclick="hideColumnModal()">取消</button>
             </div>
         </div>
     </div>

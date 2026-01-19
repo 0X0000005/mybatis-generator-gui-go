@@ -35,4 +35,15 @@ type GeneratorConfig struct {
 	JsonPropertyUpperCase      bool `json:"jsonPropertyUpperCase"`      // @JsonProperty首字母大写
 	UseBatchInsert             bool `json:"useBatchInsert"`             // 是否生成批量插入
 	UseBatchUpdate             bool `json:"useBatchUpdate"`             // 是否生成批量更新
+
+	// 列定制
+	IgnoredColumns  []string         `json:"ignoredColumns"`  // 忽略的列名列表
+	ColumnOverrides []ColumnOverride `json:"columnOverrides"` // 列覆盖配置
+}
+
+// ColumnOverride 列覆盖配置
+type ColumnOverride struct {
+	ColumnName   string `json:"columnName"`   // 数据库列名
+	PropertyName string `json:"propertyName"` // Java属性名（可选）
+	JavaType     string `json:"javaType"`     // Java类型（可选）
 }

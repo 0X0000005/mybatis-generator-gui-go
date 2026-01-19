@@ -1,6 +1,8 @@
 // 全局变量
 let currentDatabaseId = null;
 let currentTableName = null;
+let ignoredColumns = [];
+let columnOverrides = [];
 
 // 显示消息提示
 function showMessage(message, type = 'info') {
@@ -454,6 +456,95 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             hideConnectionModal();
+            hideColumnModal();
         }
     });
+
+    // 定制列按钮
+    document.getElementById('btnCustomizeColumns').onclick = showColumnModal;
+
+    // 应用列设置按钮
+    document.getElementById('btnApplyColumns').onclick = applyColumnSettings;
 });
+
+// 显示列定制弹窗
+async function showColumnModal() {
+    if (!currentDatabaseId || !currentTableName) {
+        showMessage('请先选择数据库表', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/columns', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                databaseId: currentDatabaseId,
+                tableName: currentTableName
+            })
+        });
+
+        const columns = await response.json();
+        const tbody = document.getElementById('columnTableBody');
+        tbody.innerHTML = '';
+
+        columns.forEach(col => {
+            const isIgnored = ignoredColumns.includes(col.columnName);
+            const override = columnOverrides.find(o => o.columnName === col.columnName) || {};
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                    <input type="checkbox" class="col-ignore" data-column="${col.columnName}" ${isIgnored ? 'checked' : ''}>
+                </td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${col.columnName}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${col.dataType}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">
+                    <input type="text" class="col-property" data-column="${col.columnName}" 
+                           value="${override.propertyName || ''}" placeholder="默认自动转换" style="width: 100%;">
+                </td>
+                <td style="padding: 8px; border: 1px solid #ddd;">
+                    <input type="text" class="col-javatype" data-column="${col.columnName}" 
+                           value="${override.javaType || ''}" placeholder="默认自动推断" style="width: 100%;">
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        document.getElementById('columnModal').style.display = 'block';
+    } catch (error) {
+        showMessage('加载列信息失败: ' + error.message, 'error');
+    }
+}
+
+// 隐藏列定制弹窗
+function hideColumnModal() {
+    document.getElementById('columnModal').style.display = 'none';
+}
+
+// 应用列设置
+function applyColumnSettings() {
+    ignoredColumns = [];
+    columnOverrides = [];
+
+    document.querySelectorAll('.col-ignore:checked').forEach(cb => {
+        ignoredColumns.push(cb.dataset.column);
+    });
+
+    document.querySelectorAll('.col-property').forEach(input => {
+        const propertyName = input.value.trim();
+        const javaTypeInput = document.querySelector(`.col-javatype[data-column="${input.dataset.column}"]`);
+        const javaType = javaTypeInput ? javaTypeInput.value.trim() : '';
+
+        if (propertyName || javaType) {
+            columnOverrides.push({
+                columnName: input.dataset.column,
+                propertyName: propertyName,
+                javaType: javaType
+            });
+        }
+    });
+
+    hideColumnModal();
+    showMessage(`已设置: 忽略${ignoredColumns.length}列, 覆盖${columnOverrides.length}列`, 'success');
+}

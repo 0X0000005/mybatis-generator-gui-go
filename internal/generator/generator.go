@@ -228,12 +228,35 @@ func (g *Generator) prepareModelData(columns []*database.TableColumn, tableComme
 
 	imports := make(map[string]bool)
 
-	for _, col := range columns {
-		// 获取字段名
-		fieldName := g.getFieldName(col.ColumnName)
+	// 构建忽略列集合
+	ignoredSet := make(map[string]bool)
+	for _, col := range g.config.IgnoredColumns {
+		ignoredSet[col] = true
+	}
 
-		// 获取Java类型
+	// 构建列覆盖映射
+	overrideMap := make(map[string]config.ColumnOverride)
+	for _, override := range g.config.ColumnOverrides {
+		overrideMap[override.ColumnName] = override
+	}
+
+	for _, col := range columns {
+		// 检查是否忽略此列
+		if ignoredSet[col.ColumnName] {
+			continue
+		}
+
+		// 获取字段名（检查是否有覆盖）
+		fieldName := g.getFieldName(col.ColumnName)
+		if override, ok := overrideMap[col.ColumnName]; ok && override.PropertyName != "" {
+			fieldName = override.PropertyName
+		}
+
+		// 获取Java类型（检查是否有覆盖）
 		javaType := database.GetJavaType(g.dbConfig.DbType, col.DataType, g.config.JSR310Support)
+		if override, ok := overrideMap[col.ColumnName]; ok && override.JavaType != "" {
+			javaType = override.JavaType
+		}
 
 		// 添加导入
 		g.addImport(imports, javaType, g.config.JSR310Support)
@@ -407,9 +430,36 @@ func (g *Generator) prepareMapperXMLData(columns []*database.TableColumn) *Mappe
 		UseBatchUpdate:   g.config.UseBatchUpdate,
 	}
 
+	// 构建忽略列集合
+	ignoredSet := make(map[string]bool)
+	for _, col := range g.config.IgnoredColumns {
+		ignoredSet[col] = true
+	}
+
+	// 构建列覆盖映射
+	overrideMap := make(map[string]config.ColumnOverride)
+	for _, override := range g.config.ColumnOverrides {
+		overrideMap[override.ColumnName] = override
+	}
+
 	for _, col := range columns {
+		// 检查是否忽略此列
+		if ignoredSet[col.ColumnName] {
+			continue
+		}
+
+		// 获取字段名（检查是否有覆盖）
 		fieldName := g.getFieldName(col.ColumnName)
+		if override, ok := overrideMap[col.ColumnName]; ok && override.PropertyName != "" {
+			fieldName = override.PropertyName
+		}
+
+		// 获取Java类型（检查是否有覆盖）
 		javaType := database.GetJavaType(g.dbConfig.DbType, col.DataType, g.config.JSR310Support)
+		if override, ok := overrideMap[col.ColumnName]; ok && override.JavaType != "" {
+			javaType = override.JavaType
+		}
+
 		jdbcType := database.GetJdbcType(g.dbConfig.DbType, col.DataType)
 
 		mapping := &ColumnMapping{
