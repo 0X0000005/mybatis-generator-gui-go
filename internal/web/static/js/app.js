@@ -505,18 +505,18 @@ async function showColumnModal() {
 
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                <td class="text-center">
                     <input type="checkbox" class="col-ignore" data-column="${col.columnName}" ${isIgnored ? 'checked' : ''}>
                 </td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${col.columnName}</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${col.dataType}</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">
-                    <input type="text" class="col-property" data-column="${col.columnName}" 
-                           value="${override.propertyName || ''}" placeholder="默认自动转换" style="width: 100%;">
+                <td>${col.columnName}</td>
+                <td>${col.dataType}</td>
+                <td>
+                    <input type="text" class="form-input col-property" data-column="${col.columnName}" 
+                           value="${override.propertyName || ''}" placeholder="默认自动转换">
                 </td>
-                <td style="padding: 8px; border: 1px solid #ddd;">
-                    <input type="text" class="col-javatype" data-column="${col.columnName}" 
-                           value="${override.javaType || ''}" placeholder="默认自动推断" style="width: 100%;" list="javaTypeList">
+                <td>
+                    <input type="text" class="form-input col-javatype" data-column="${col.columnName}" 
+                           value="${override.javaType || ''}" placeholder="默认自动推断" list="javaTypeList">
                 </td>
             `;
             tbody.appendChild(row);

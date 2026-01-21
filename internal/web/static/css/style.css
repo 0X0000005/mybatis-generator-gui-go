@@ -471,3 +471,31 @@ header h1 {
         grid-template-columns: 1fr;
     }
 }
+
+/* 数据表格样式 */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.data-table th,
+.data-table td {
+    padding: 12px;
+    border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.data-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.data-table .text-center {
+    text-align: center;
+}
