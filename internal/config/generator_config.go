@@ -21,6 +21,7 @@ type GeneratorConfig struct {
 	Comment                    bool `json:"comment"`                    // 是否生成注释
 	OverrideXML                bool `json:"overrideXML"`                // 是否覆盖XML
 	NeedToStringHashcodeEquals bool `json:"needToStringHashcodeEquals"` // 是否生成toString/hashCode/equals
+	NeedConstructors           bool `json:"needConstructors"`           // 是否生成构造方法
 	UseLombokPlugin            bool `json:"useLombokPlugin"`            // 是否使用Lombok
 	UseTableNameAlias          bool `json:"useTableNameAlias"`          // 是否使用表名别名
 	NeedForUpdate              bool `json:"needForUpdate"`              // 是否生成for update

@@ -206,27 +206,36 @@ type ModelField struct {
 
 // ModelData Model模板数据
 type ModelData struct {
-	Package               string
-	ClassName             string
-	TableComment          string
-	Fields                []*ModelField
-	Imports               []string
-	UseJsonProperty       bool
-	JsonPropertyUpperCase bool
+	Package                    string
+	ClassName                  string
+	TableComment               string
+	Fields                     []*ModelField
+	Imports                    []string
+	UseJsonProperty            bool
+	JsonPropertyUpperCase      bool
+	NeedToStringHashcodeEquals bool
+	NeedConstructors           bool
 }
 
 // prepareModelData 准备Model模板数据
 func (g *Generator) prepareModelData(columns []*database.TableColumn, tableComment string) *ModelData {
 	data := &ModelData{
-		Package:               g.config.ModelPackage,
-		ClassName:             g.config.DomainObjectName,
-		TableComment:          tableComment,
-		Fields:                make([]*ModelField, 0),
-		UseJsonProperty:       g.config.UseJsonProperty,
-		JsonPropertyUpperCase: g.config.JsonPropertyUpperCase,
+		Package:                    g.config.ModelPackage,
+		ClassName:                  g.config.DomainObjectName,
+		TableComment:               tableComment,
+		Fields:                     make([]*ModelField, 0),
+		UseJsonProperty:            g.config.UseJsonProperty,
+		JsonPropertyUpperCase:      g.config.JsonPropertyUpperCase,
+		NeedToStringHashcodeEquals: g.config.NeedToStringHashcodeEquals,
+		NeedConstructors:           g.config.NeedConstructors,
 	}
 
 	imports := make(map[string]bool)
+
+	// 如果需要生成equals/hashCode且不使用Lombok，则导入Objects
+	if g.config.NeedToStringHashcodeEquals && !g.config.UseLombokPlugin {
+		imports["java.util.Objects"] = true
+	}
 
 	// 构建忽略列集合
 	ignoredSet := make(map[string]bool)
