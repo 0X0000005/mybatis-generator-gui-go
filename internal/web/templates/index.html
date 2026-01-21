@@ -38,8 +38,12 @@
                 </div>
 
                 <div class="section">
-                    <h3>表列表</h3>
+                    <h3>表列表 <span id="selectionCount" class="selection-count"></span></h3>
                     <input type="text" id="tableFilter" placeholder="过滤表名..." class="form-input">
+                    <div class="table-actions">
+                        <button type="button" class="btn btn-secondary" onclick="selectAllTables()">全选</button>
+                        <button type="button" class="btn btn-secondary" onclick="deselectAllTables()">取消全选</button>
+                    </div>
                     <div id="tableList" class="table-list">
                         <!-- 动态加载表列表 -->
                     </div>
@@ -233,6 +237,14 @@
                 <span class="close" onclick="hideColumnModal()">&times;</span>
             </div>
             <div class="modal-body">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: inline-block; margin-right: 10px;">选择表：</label>
+                    <select id="columnTableSelector" class="form-input"
+                        style="width: auto; display: inline-block; min-width: 200px;"
+                        onchange="loadColumnsForTable(this.value)">
+                        <!-- 动态填充 -->
+                    </select>
+                </div>
                 <p style="color: #666; margin-bottom: 15px;">
                     勾选"忽略"将不生成该列。自定义属性名/类型可覆盖默认值。
                 </p>

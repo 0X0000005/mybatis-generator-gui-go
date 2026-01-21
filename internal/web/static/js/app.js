@@ -1,6 +1,7 @@
 // 全局变量
 let currentDatabaseId = null;
-let currentTableName = null;
+let selectedTables = [];  // 改为数组支持多表选择
+let allTables = [];       // 存储所有表名
 let ignoredColumns = [];
 let columnOverrides = [];
 
@@ -87,31 +88,70 @@ async function loadTables(filter = '') {
         });
 
         const tables = await response.json();
+        allTables = tables;
 
         const list = document.getElementById('tableList');
         list.innerHTML = '';
 
         tables.forEach(tableName => {
             const item = document.createElement('div');
-            item.className = 'table-item';
-            item.textContent = tableName;
-            item.onclick = () => selectTable(tableName);
+            item.className = 'table-item' + (selectedTables.includes(tableName) ? ' selected' : '');
+            item.innerHTML = `
+                <input type="checkbox" 
+                       ${selectedTables.includes(tableName) ? 'checked' : ''} 
+                       onchange="toggleTableSelection('${tableName}', this.checked)">
+                <span class="table-item-name" onclick="toggleTableSelection('${tableName}')">${tableName}</span>
+            `;
             list.appendChild(item);
         });
+        updateSelectionCount();
     } catch (error) {
         showMessage('加载表列表失败: ' + error.message, 'error');
     }
 }
 
-// 选择表
-function selectTable(tableName) {
-    currentTableName = tableName;
+// 切换表选择
+function toggleTableSelection(tableName, checked) {
+    if (checked === undefined) {
+        // 点击表名时切换
+        checked = !selectedTables.includes(tableName);
+    }
 
-    // 填充表单
-    document.getElementById('tableName').value = tableName;
-    document.getElementById('domainObjectName').value = toPascalCase(tableName);
-    document.getElementById('mapperName').value = toPascalCase(tableName) + 'Mapper';
+    if (checked) {
+        if (!selectedTables.includes(tableName)) {
+            selectedTables.push(tableName);
+        }
+    } else {
+        selectedTables = selectedTables.filter(t => t !== tableName);
+    }
+
+    // 更新UI
+    loadTables(document.getElementById('tableFilter').value);
 }
+
+// 全选
+function selectAllTables() {
+    selectedTables = [...allTables];
+    loadTables(document.getElementById('tableFilter').value);
+}
+
+// 取消全选
+function deselectAllTables() {
+    selectedTables = [];
+    loadTables(document.getElementById('tableFilter').value);
+}
+
+// 更新选择计数
+function updateSelectionCount() {
+    const countEl = document.getElementById('selectionCount');
+    if (selectedTables.length > 0) {
+        countEl.textContent = `(已选 ${selectedTables.length} 张)`;
+    } else {
+        countEl.textContent = '';
+    }
+}
+
+
 
 // 新建/编辑连接
 function showConnectionModal(connection = null) {
@@ -287,7 +327,7 @@ async function generateCode() {
         return;
     }
 
-    if (!currentTableName) {
+    if (selectedTables.length === 0) {
         showMessage('请先选择表', 'error');
         return;
     }
@@ -299,10 +339,6 @@ async function generateCode() {
         daoTargetFolder: document.getElementById('daoTargetFolder').value,
         mappingXMLPackage: document.getElementById('mapperPackage').value,
         mappingXMLTargetFolder: document.getElementById('mapperTargetFolder').value,
-        tableName: document.getElementById('tableName').value,
-        domainObjectName: document.getElementById('domainObjectName').value,
-        mapperName: document.getElementById('mapperName').value,
-        generateKeys: document.getElementById('generateKeys').value,
         encoding: document.getElementById('encoding').value,
         offsetLimit: document.getElementById('offsetLimit').checked,
         comment: document.getElementById('comment').checked,
@@ -323,11 +359,14 @@ async function generateCode() {
     };
 
     try {
+        showMessage(`正在生成 ${selectedTables.length} 张表的代码...`, 'info');
+
         const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 databaseId: currentDatabaseId,
+                tableNames: selectedTables,
                 config: config
             })
         });
@@ -341,13 +380,13 @@ async function generateCode() {
             const downloadUrl = `/api/download/${result.downloadId}`;
             const a = document.createElement('a');
             a.href = downloadUrl;
-            a.download = `${currentTableName}_generated.zip`;
+            a.download = `generated_${selectedTables.length}_tables.zip`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
 
             setTimeout(() => {
-                showMessage(`已生成文件: ${result.files.join(', ')}`, 'info');
+                showMessage(`已生成 ${result.tableCount} 张表, 共 ${result.files.length} 个文件`, 'info');
             }, 1000);
         } else {
             showMessage('代码生成失败: ' + result.error, 'error');
@@ -486,10 +525,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // 显示列定制弹窗
 async function showColumnModal() {
-    if (!currentDatabaseId || !currentTableName) {
-        showMessage('请先选择数据库表', 'error');
+    if (!currentDatabaseId) {
+        showMessage('请先选择数据库连接', 'error');
         return;
     }
+
+    if (selectedTables.length === 0) {
+        showMessage('请先选择表', 'error');
+        return;
+    }
+
+    // 填充表选择器
+    const selector = document.getElementById('columnTableSelector');
+    selector.innerHTML = '';
+    selectedTables.forEach(tableName => {
+        const option = document.createElement('option');
+        option.value = tableName;
+        option.textContent = tableName;
+        selector.appendChild(option);
+    });
+
+    // 加载第一张表的列
+    await loadColumnsForTable(selectedTables[0]);
+
+    document.getElementById('columnModal').style.display = 'block';
+}
+
+// 加载指定表的列信息
+async function loadColumnsForTable(tableName) {
+    if (!tableName) return;
 
     try {
         const response = await fetch('/api/columns', {
@@ -497,7 +561,7 @@ async function showColumnModal() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 databaseId: currentDatabaseId,
-                tableName: currentTableName
+                tableName: tableName
             })
         });
 
@@ -550,8 +614,6 @@ async function showColumnModal() {
             `;
             document.body.appendChild(datalist);
         }
-
-        document.getElementById('columnModal').style.display = 'block';
     } catch (error) {
         showMessage('加载列信息失败: ' + error.message, 'error');
     }
@@ -586,5 +648,19 @@ function applyColumnSettings() {
     });
 
     hideColumnModal();
-    showMessage(`已设置: 忽略${ignoredColumns.length}列, 覆盖${columnOverrides.length}列`, 'success');
+
+    // 构建友好的提示消息
+    let msgParts = [];
+    if (ignoredColumns.length > 0) {
+        msgParts.push(`${ignoredColumns.length} 个字段将被忽略`);
+    }
+    if (columnOverrides.length > 0) {
+        msgParts.push(`${columnOverrides.length} 个字段已自定义`);
+    }
+
+    if (msgParts.length > 0) {
+        showMessage(`列设置已保存：${msgParts.join('，')}`, 'success');
+    } else {
+        showMessage('列设置已保存，未做任何修改', 'success');
+    }
 }

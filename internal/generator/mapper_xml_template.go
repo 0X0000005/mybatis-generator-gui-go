@@ -8,28 +8,28 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <!-- ResultMap -->
     <resultMap id="BaseResultMap" type="{{.ModelType}}">
 {{if .PrimaryKey}}        <id column="{{.PrimaryKey.ColumnName}}" jdbcType="{{.PrimaryKey.JdbcType}}" property="{{.PrimaryKey.FieldName}}" />
-{{end}}{{range .Columns}}{{if ne .ColumnName $.PrimaryKey.ColumnName}}        <result column="{{.ColumnName}}" jdbcType="{{.JdbcType}}" property="{{.FieldName}}" />
+{{end}}{{range .Columns}}{{if or (not $.PrimaryKey) (ne .ColumnName $.PrimaryKey.ColumnName)}}        <result column="{{.ColumnName}}" jdbcType="{{.JdbcType}}" property="{{.FieldName}}" />
 {{end}}{{end}}    </resultMap>
 
     <!-- 基础列 -->
     <sql id="Base_Column_List">
         {{range $index, $col := .Columns}}{{if $index}}, {{end}}{{if $.UseTableNameAlias}}t.{{end}}{{$col.ColumnName}}{{end}}
     </sql>
-
+{{if .PrimaryKey}}
     <!-- 根据主键查询 -->
     <select id="selectByPrimaryKey" parameterType="{{.PrimaryKey.JavaType}}" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
         FROM {{.TableName}}{{if .UseTableNameAlias}} t{{end}}
         WHERE {{if .UseTableNameAlias}}t.{{end}}{{.PrimaryKey.ColumnName}} = #{{"{"}}{{.PrimaryKey.FieldName}},jdbcType={{.PrimaryKey.JdbcType}}{{"}"}}{{if .NeedForUpdate}} FOR UPDATE{{end}}
     </select>
-
+{{end}}
     <!-- 插入 -->
     <insert id="insert" parameterType="{{.ModelType}}"{{if .UseGeneratedKeys}} useGeneratedKeys="true" keyProperty="{{.GenerateKeys}}"{{end}}>
         INSERT INTO {{.TableName}} (
-            {{range $index, $col := .Columns}}{{if ne $col.ColumnName $.PrimaryKey.ColumnName}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}{{end}}
+            {{range $index, $col := .Columns}}{{if or (not $.PrimaryKey) (ne $col.ColumnName $.PrimaryKey.ColumnName)}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}{{end}}
         )
         VALUES (
-            {{range $index, $col := .Columns}}{{if ne $col.ColumnName $.PrimaryKey.ColumnName}}{{if $index}}, {{end}}#{{"{"}}{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}}
+            {{range $index, $col := .Columns}}{{if or (not $.PrimaryKey) (ne $col.ColumnName $.PrimaryKey.ColumnName)}}{{if $index}}, {{end}}#{{"{"}}{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}}
         )
     </insert>
 
@@ -37,17 +37,17 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <insert id="insertSelective" parameterType="{{.ModelType}}"{{if .UseGeneratedKeys}} useGeneratedKeys="true" keyProperty="{{.GenerateKeys}}"{{end}}>
         INSERT INTO {{.TableName}}
         <trim prefix="(" suffix=")" suffixOverrides=",">
-{{range .Columns}}{{if ne .ColumnName $.PrimaryKey.ColumnName}}            <if test="{{.FieldName}} != null">
+{{range .Columns}}{{if or (not $.PrimaryKey) (ne .ColumnName $.PrimaryKey.ColumnName)}}            <if test="{{.FieldName}} != null">
                 {{.ColumnName}},
             </if>
 {{end}}{{end}}        </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
-{{range .Columns}}{{if ne .ColumnName $.PrimaryKey.ColumnName}}            <if test="{{.FieldName}} != null">
+{{range .Columns}}{{if or (not $.PrimaryKey) (ne .ColumnName $.PrimaryKey.ColumnName)}}            <if test="{{.FieldName}} != null">
                 #{{"{"}}{{.FieldName}},jdbcType={{.JdbcType}}{{"}"}},
             </if>
 {{end}}{{end}}        </trim>
     </insert>
-
+{{if .PrimaryKey}}
     <!-- 根据主键更新 -->
     <update id="updateByPrimaryKey" parameterType="{{.ModelType}}">
         UPDATE {{.TableName}}
@@ -72,7 +72,7 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
         DELETE FROM {{.TableName}}
         WHERE {{.PrimaryKey.ColumnName}} = #{{"{"}}{{.PrimaryKey.FieldName}},jdbcType={{.PrimaryKey.JdbcType}}{{"}"}}
     </delete>
-{{if .OffsetLimit}}
+{{end}}{{if .OffsetLimit}}
     <!-- 分页查询 -->
     <select id="selectByPage" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
@@ -84,22 +84,22 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <!-- 批量插入 -->
     <insert id="insertBatch" parameterType="java.util.List"{{if .UseGeneratedKeys}} useGeneratedKeys="true" keyProperty="{{.GenerateKeys}}"{{end}}>
         INSERT INTO {{.TableName}} (
-            {{range $index, $col := .Columns}}{{if ne $col.ColumnName $.PrimaryKey.ColumnName}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}{{end}}
+            {{range $index, $col := .Columns}}{{if or (not $.PrimaryKey) (ne $col.ColumnName $.PrimaryKey.ColumnName)}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}{{end}}
         )
         VALUES
         <foreach collection="list" item="item" separator=",">
-            ({{range $index, $col := .Columns}}{{if ne $col.ColumnName $.PrimaryKey.ColumnName}}{{if $index}}, {{end}}#{{"{"}}{{"item."}}{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}})
+            ({{range $index, $col := .Columns}}{{if or (not $.PrimaryKey) (ne $col.ColumnName $.PrimaryKey.ColumnName)}}{{if $index}}, {{end}}#{{"{"}}{{"{{"}}item.{{"}}"}}{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}})
         </foreach>
     </insert>
 {{end}}
-{{if .UseBatchUpdate}}
+{{if and .UseBatchUpdate .PrimaryKey}}
     <!-- 批量更新 -->
     <update id="updateBatch" parameterType="java.util.List">
         <foreach collection="list" item="item" separator=";">
             UPDATE {{.TableName}}
             SET {{range $index, $col := .Columns}}{{if ne $col.ColumnName $.PrimaryKey.ColumnName}}{{if $index}},
-                {{end}}{{$col.ColumnName}} = #{{"{"}}{{"item."}}{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}}
-            WHERE {{.PrimaryKey.ColumnName}} = #{{"{"}}{{"item."}}{{.PrimaryKey.FieldName}},jdbcType={{.PrimaryKey.JdbcType}}{{"}"}}
+                {{end}}{{$col.ColumnName}} = #{{"{"}}{{"{{"}}item.{{"}}"}}{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}}
+            WHERE {{.PrimaryKey.ColumnName}} = #{{"{"}}{{"{{"}}item.{{"}}"}}{{.PrimaryKey.FieldName}},jdbcType={{.PrimaryKey.JdbcType}}{{"}"}}
         </foreach>
     </update>
 {{end}}

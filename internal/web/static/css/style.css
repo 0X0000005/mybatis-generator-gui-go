@@ -527,3 +527,43 @@ header h1 {
     padding-bottom: 5px;
     border-bottom: 1px solid #e9ecef;
 }
+
+/* 表选择样式 */
+.table-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.table-item-name {
+    flex: 1;
+    cursor: pointer;
+}
+
+.table-item.selected {
+    background: #667eea;
+    color: white;
+}
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.table-actions .btn {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.selection-count {
+    font-size: 12px;
+    color: #666;
+    margin-left: 8px;
+}

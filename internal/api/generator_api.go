@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,6 +26,7 @@ var (
 func GenerateCode(c *gin.Context) {
 	var req struct {
 		DatabaseID int                    `json:"databaseId"`
+		TableNames []string               `json:"tableNames"`
 		Config     config.GeneratorConfig `json:"config"`
 	}
 
@@ -34,9 +36,12 @@ func GenerateCode(c *gin.Context) {
 		return
 	}
 
-	log.Printf("INFO: 开始生成代码 - DatabaseID: %d, Table: %s", req.DatabaseID, req.Config.TableName)
-	log.Printf("INFO: 配置 - Package: %s, UseJsonProperty: %v, JsonPropertyUpperCase: %v",
-		req.Config.ModelPackage, req.Config.UseJsonProperty, req.Config.JsonPropertyUpperCase)
+	if len(req.TableNames) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请选择至少一张表"})
+		return
+	}
+
+	log.Printf("INFO: 开始生成代码 - DatabaseID: %d, Tables: %v", req.DatabaseID, req.TableNames)
 
 	// 获取当前工作目录
 	currentDir, err := os.Getwd()
@@ -80,19 +85,32 @@ func GenerateCode(c *gin.Context) {
 
 	log.Printf("INFO: 使用数据库配置: %s (%s)", dbConfig.Name, dbConfig.DbType)
 
-	// 创建生成器并生成代码
-	gen := generator.NewGenerator(&req.Config, dbConfig)
-	files, err := gen.Generate()
-	if err != nil {
-		log.Printf("ERROR: 生成代码失败: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	// 为每张表生成代码
+	var allFiles []string
+	for _, tableName := range req.TableNames {
+		// 复制配置并设置当前表
+		tableConfig := req.Config
+		tableConfig.TableName = tableName
+		tableConfig.DomainObjectName = toPascalCase(tableName)
+		tableConfig.MapperName = toPascalCase(tableName) + "Mapper"
+
+		log.Printf("INFO: 生成表 %s 的代码", tableName)
+
+		gen := generator.NewGenerator(&tableConfig, dbConfig)
+		files, err := gen.Generate()
+		if err != nil {
+			log.Printf("ERROR: 生成表 %s 代码失败: %v", tableName, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("生成表 %s 失败: %v", tableName, err)})
+			return
+		}
+		allFiles = append(allFiles, files...)
 	}
 
-	log.Printf("INFO: 成功生成 %d 个文件", len(files))
+	log.Printf("INFO: 成功生成 %d 张表, 共 %d 个文件", len(req.TableNames), len(allFiles))
 
 	// 打包成ZIP
-	zipPath, err := generator.CreateZipArchive(files, req.Config.ProjectFolder, req.Config.TableName)
+	zipName := fmt.Sprintf("generated_%d_tables", len(req.TableNames))
+	zipPath, err := generator.CreateZipArchive(allFiles, req.Config.ProjectFolder, zipName)
 	if err != nil {
 		log.Printf("ERROR: 打包失败: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "打包失败: " + err.Error()})
@@ -101,8 +119,8 @@ func GenerateCode(c *gin.Context) {
 
 	log.Printf("INFO: ZIP文件已创建: %s", zipPath)
 
-	// 生成唯一的下载ID并存储映射（添加随机字符串避免缓存）
-	downloadID := fmt.Sprintf("%d_%s_%s", req.DatabaseID, req.Config.TableName, generateRandomString(8))
+	// 生成唯一的下载ID并存储映射
+	downloadID := fmt.Sprintf("%d_multi_%s", req.DatabaseID, generateRandomString(8))
 
 	generatedZipsMu.Lock()
 	generatedZips[downloadID] = zipPath
@@ -114,8 +132,20 @@ func GenerateCode(c *gin.Context) {
 		"success":    true,
 		"message":    "代码生成成功",
 		"downloadId": downloadID,
-		"files":      getFileNames(files),
+		"files":      getFileNames(allFiles),
+		"tableCount": len(req.TableNames),
 	})
+}
+
+// toPascalCase 将下划线命名转为帕斯卡命名
+func toPascalCase(s string) string {
+	parts := strings.Split(s, "_")
+	for i, part := range parts {
+		if len(part) > 0 {
+			parts[i] = strings.ToUpper(part[:1]) + strings.ToLower(part[1:])
+		}
+	}
+	return strings.Join(parts, "")
 }
 
 // DownloadCode 下载生成的代码ZIP
