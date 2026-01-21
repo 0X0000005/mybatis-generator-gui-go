@@ -499,3 +499,31 @@ header h1 {
 .data-table .text-center {
     text-align: center;
 }
+
+/* 复选框网格布局 */
+.checkbox-group-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 20px;
+}
+
+.checkbox-group-grid label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.option-section {
+    margin-bottom: 20px;
+}
+
+.option-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #e9ecef;
+}

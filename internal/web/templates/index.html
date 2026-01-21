@@ -121,21 +121,42 @@
 
                         <div class="form-group">
                             <label>生成选项</label>
-                            <div class="checkbox-group">
-                                <label><input type="checkbox" id="offsetLimit"> 生成分页查询</label>
-                                <label><input type="checkbox" id="comment" checked> 生成注释</label>
-                                <label><input type="checkbox" id="overrideXML"> 覆盖XML文件</label>
-                                <label><input type="checkbox" id="useLombokPlugin"> 使用Lombok</label>
-                                <label><input type="checkbox" id="jsr310Support"> 使用JSR310日期类型</label>
-                                <label><input type="checkbox" id="needToStringHashcodeEquals">
-                                    生成toString/hashCode/equals</label>
-                                <label><input type="checkbox" id="needConstructors" checked> 生成构造方法</label>
-                                <label><input type="checkbox" id="useJsonProperty"> 使用@JsonProperty</label>
-                                <span id="jsonPropertyOptions" style="display: none; margin-left: 20px;">
-                                    <label><input type="checkbox" id="jsonPropertyUpperCase"> 首字母大写</label>
-                                </span>
-                                <label><input type="checkbox" id="useBatchInsert"> 生成批量插入</label>
-                                <label><input type="checkbox" id="useBatchUpdate"> 生成批量更新</label>
+
+                            <!-- 代码风格 -->
+                            <div class="option-section">
+                                <div class="option-section-title">代码风格</div>
+                                <div class="checkbox-group-grid">
+                                    <label><input type="checkbox" id="useLombokPlugin"> 使用Lombok</label>
+                                    <label><input type="checkbox" id="comment" checked> 生成注释</label>
+                                    <label><input type="checkbox" id="needToStringHashcodeEquals">
+                                        生成toString/hashCode/equals</label>
+                                    <label><input type="checkbox" id="needConstructors" checked> 生成构造方法</label>
+                                </div>
+                            </div>
+
+                            <!-- SQL选项 -->
+                            <div class="option-section">
+                                <div class="option-section-title">SQL选项</div>
+                                <div class="checkbox-group-grid">
+                                    <label><input type="checkbox" id="offsetLimit"> 生成分页查询</label>
+                                    <label><input type="checkbox" id="overrideXML"> 覆盖XML文件</label>
+                                    <label><input type="checkbox" id="needForUpdate"> Select增加FOR UPDATE</label>
+                                    <label><input type="checkbox" id="useTableNameAlias"> 使用表别名</label>
+                                    <label><input type="checkbox" id="useBatchInsert"> 生成批量插入</label>
+                                    <label><input type="checkbox" id="useBatchUpdate"> 生成批量更新</label>
+                                </div>
+                            </div>
+
+                            <!-- 属性选项 -->
+                            <div class="option-section">
+                                <div class="option-section-title">属性选项</div>
+                                <div class="checkbox-group-grid">
+                                    <label><input type="checkbox" id="jsr310Support"> 使用JSR310日期类型</label>
+                                    <label><input type="checkbox" id="useActualColumnNames"> 使用实际列名</label>
+                                    <label><input type="checkbox" id="useJsonProperty"> 使用@JsonProperty</label>
+                                    <label id="jsonPropertyOptionsLabel" style="display: none;"><input type="checkbox"
+                                            id="jsonPropertyUpperCase"> 首字母大写</label>
+                                </div>
                             </div>
                         </div>
 

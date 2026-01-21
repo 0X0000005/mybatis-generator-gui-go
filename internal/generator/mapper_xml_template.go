@@ -13,14 +13,14 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 
     <!-- 基础列 -->
     <sql id="Base_Column_List">
-        {{range $index, $col := .Columns}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}
+        {{range $index, $col := .Columns}}{{if $index}}, {{end}}{{if $.UseTableNameAlias}}t.{{end}}{{$col.ColumnName}}{{end}}
     </sql>
 
     <!-- 根据主键查询 -->
     <select id="selectByPrimaryKey" parameterType="{{.PrimaryKey.JavaType}}" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
-        FROM {{.TableName}}
-        WHERE {{.PrimaryKey.ColumnName}} = #{{"{"}}{{.PrimaryKey.FieldName}},jdbcType={{.PrimaryKey.JdbcType}}{{"}"}}
+        FROM {{.TableName}}{{if .UseTableNameAlias}} t{{end}}
+        WHERE {{if .UseTableNameAlias}}t.{{end}}{{.PrimaryKey.ColumnName}} = #{{"{"}}{{.PrimaryKey.FieldName}},jdbcType={{.PrimaryKey.JdbcType}}{{"}"}}{{if .NeedForUpdate}} FOR UPDATE{{end}}
     </select>
 
     <!-- 插入 -->
@@ -76,7 +76,7 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <!-- 分页查询 -->
     <select id="selectByPage" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
-        FROM {{.TableName}}
+        FROM {{.TableName}}{{if .UseTableNameAlias}} t{{end}}
         LIMIT #{offset}, #{limit}
     </select>
 {{end}}

@@ -400,16 +400,18 @@ func (g *Generator) prepareMapperData(columns []*database.TableColumn) *MapperDa
 
 // MapperXMLData Mapper XML模板数据
 type MapperXMLData struct {
-	Namespace        string
-	ModelType        string
-	TableName        string
-	Columns          []*ColumnMapping
-	PrimaryKey       *ColumnMapping
-	OffsetLimit      bool
-	UseGeneratedKeys bool
-	GenerateKeys     string
-	UseBatchInsert   bool
-	UseBatchUpdate   bool
+	Namespace         string
+	ModelType         string
+	TableName         string
+	Columns           []*ColumnMapping
+	PrimaryKey        *ColumnMapping
+	OffsetLimit       bool
+	UseGeneratedKeys  bool
+	GenerateKeys      string
+	UseBatchInsert    bool
+	UseBatchUpdate    bool
+	NeedForUpdate     bool
+	UseTableNameAlias bool
 }
 
 // ColumnMapping 列映射
@@ -428,15 +430,17 @@ func (g *Generator) prepareMapperXMLData(columns []*database.TableColumn) *Mappe
 	}
 
 	data := &MapperXMLData{
-		Namespace:        g.config.DaoPackage + "." + mapperName,
-		ModelType:        g.config.ModelPackage + "." + g.config.DomainObjectName,
-		TableName:        g.config.TableName,
-		Columns:          make([]*ColumnMapping, 0),
-		OffsetLimit:      g.config.OffsetLimit,
-		UseGeneratedKeys: g.config.GenerateKeys != "",
-		GenerateKeys:     g.config.GenerateKeys,
-		UseBatchInsert:   g.config.UseBatchInsert,
-		UseBatchUpdate:   g.config.UseBatchUpdate,
+		Namespace:         g.config.DaoPackage + "." + mapperName,
+		ModelType:         g.config.ModelPackage + "." + g.config.DomainObjectName,
+		TableName:         g.config.TableName,
+		Columns:           make([]*ColumnMapping, 0),
+		OffsetLimit:       g.config.OffsetLimit,
+		UseGeneratedKeys:  g.config.GenerateKeys != "",
+		GenerateKeys:      g.config.GenerateKeys,
+		UseBatchInsert:    g.config.UseBatchInsert,
+		UseBatchUpdate:    g.config.UseBatchUpdate,
+		NeedForUpdate:     g.config.NeedForUpdate,
+		UseTableNameAlias: g.config.UseTableNameAlias,
 	}
 
 	// 构建忽略列集合

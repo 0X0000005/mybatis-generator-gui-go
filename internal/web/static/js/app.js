@@ -315,6 +315,9 @@ async function generateCode() {
         jsonPropertyUpperCase: document.getElementById('jsonPropertyUpperCase').checked,
         useBatchInsert: document.getElementById('useBatchInsert').checked,
         useBatchUpdate: document.getElementById('useBatchUpdate').checked,
+        needForUpdate: document.getElementById('needForUpdate').checked,
+        useTableNameAlias: document.getElementById('useTableNameAlias').checked,
+        useActualColumnNames: document.getElementById('useActualColumnNames').checked,
         ignoredColumns: ignoredColumns,
         columnOverrides: columnOverrides
     };
@@ -379,7 +382,10 @@ async function saveConfig() {
         useJsonProperty: document.getElementById('useJsonProperty').checked,
         jsonPropertyUpperCase: document.getElementById('jsonPropertyUpperCase').checked,
         useBatchInsert: document.getElementById('useBatchInsert').checked,
-        useBatchUpdate: document.getElementById('useBatchUpdate').checked
+        useBatchUpdate: document.getElementById('useBatchUpdate').checked,
+        needForUpdate: document.getElementById('needForUpdate').checked,
+        useTableNameAlias: document.getElementById('useTableNameAlias').checked,
+        useActualColumnNames: document.getElementById('useActualColumnNames').checked
     };
 
     try {
@@ -456,8 +462,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // @JsonProperty 选项切换时显示/隐藏首字母大写选项
     document.getElementById('useJsonProperty').onchange = (e) => {
-        const jsonPropertyOptions = document.getElementById('jsonPropertyOptions');
-        jsonPropertyOptions.style.display = e.target.checked ? 'inline' : 'none';
+        const jsonPropertyOptionsLabel = document.getElementById('jsonPropertyOptionsLabel');
+        jsonPropertyOptionsLabel.style.display = e.target.checked ? 'flex' : 'none';
         if (!e.target.checked) {
             document.getElementById('jsonPropertyUpperCase').checked = false;
         }
