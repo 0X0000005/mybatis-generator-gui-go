@@ -15,8 +15,7 @@
     <div class="container">
         <header style="position: relative;">
             <div style="position: absolute; right: 10px; top: 10px;">
-                <a href="/logout"
-                    style="color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.9rem; background: rgba(0,0,0,0.2); padding: 6px 15px; border-radius: 20px; transition: all 0.3s ease;">
+                <a href="/logout" class="logout-btn">
                     退出登录 🚪
                 </a>
             </div>
@@ -45,7 +44,7 @@
                         <button type="button" class="btn btn-secondary" onclick="deselectAllTables()">取消全选</button>
                     </div>
                     <div id="tableList" class="table-list">
-                        <!-- 动态加载表列表 -->
+                        <div class="empty-placeholder">请先选择数据库连接</div>
                     </div>
                 </div>
             </aside>

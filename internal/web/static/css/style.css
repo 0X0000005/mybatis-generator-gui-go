@@ -50,6 +50,32 @@ header h1 {
     overflow-y: auto;
 }
 
+/* 自定义滚动条样式 */
+.sidebar::-webkit-scrollbar,
+.table-list::-webkit-scrollbar,
+.connection-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.table-list::-webkit-scrollbar-track,
+.connection-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.table-list::-webkit-scrollbar-thumb,
+.connection-list::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.3);
+    border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.table-list::-webkit-scrollbar-thumb:hover,
+.connection-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.5);
+}
+
 .content {
     flex: 1;
     padding: 30px;
@@ -80,12 +106,16 @@ header h1 {
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    transition: all 0.3s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
 }
 
 .btn-primary {
@@ -403,24 +433,12 @@ header h1 {
     opacity: 0.8;
 }
 
-/* 消息提示 */
-.message {
+/* 内联消息样式（用于页面内嵌提示） */
+.inline-message {
     padding: 15px 20px;
     margin: 20px 0;
     border-radius: 6px;
     animation: slideDown 0.3s;
-}
-
-@keyframes slideDown {
-    from {
-        transform: translateY(-20px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
 }
 
 .message-success {
@@ -566,4 +584,54 @@ header h1 {
     font-size: 12px;
     color: #666;
     margin-left: 8px;
+}
+
+/* 退出登录按钮 */
+.logout-btn {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    font-size: 0.9rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 6px 15px;
+    border-radius: 20px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+}
+
+.logout-btn:hover {
+    background: rgba(0, 0, 0, 0.35);
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* 加载状态 */
+.loading-placeholder {
+    text-align: center;
+    padding: 30px 15px;
+    color: #999;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e9ecef;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.empty-placeholder {
+    text-align: center;
+    padding: 30px 15px;
+    color: #aaa;
+    font-style: italic;
 }

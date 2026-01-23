@@ -63,6 +63,12 @@ async function loadConnections() {
 async function selectConnection(id, name) {
     currentDatabaseId = id;
 
+    // 切换数据库时清空之前的选择（多选只在同一数据库连接内有效）
+    selectedTables = [];
+    allTables = [];
+    ignoredColumns = [];
+    columnOverrides = [];
+
     // 高亮选中的连接
     document.querySelectorAll('.connection-item').forEach(item => {
         item.classList.remove('active');
@@ -77,6 +83,11 @@ async function selectConnection(id, name) {
 async function loadTables(filter = '') {
     if (!currentDatabaseId) return;
 
+    const list = document.getElementById('tableList');
+
+    // 显示加载状态
+    list.innerHTML = '<div class="loading-placeholder"><span class="loading-spinner"></span>加载中...</div>';
+
     try {
         const response = await fetch('/api/tables', {
             method: 'POST',
@@ -90,7 +101,6 @@ async function loadTables(filter = '') {
         const tables = await response.json();
         allTables = tables;
 
-        const list = document.getElementById('tableList');
         list.innerHTML = '';
 
         tables.forEach(tableName => {
@@ -309,7 +319,7 @@ async function deleteConnection(id) {
             // 如果删除的是当前选中的连接，清空表列表
             if (currentDatabaseId === id) {
                 currentDatabaseId = null;
-                document.getElementById('tableList').innerHTML = '';
+                document.getElementById('tableList').innerHTML = '<div class="empty-placeholder">请先选择数据库连接</div>';
             }
         } else {
             const result = await response.json();
