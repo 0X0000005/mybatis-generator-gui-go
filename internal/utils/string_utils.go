@@ -6,7 +6,7 @@ import (
 )
 
 // DBStringToCamelCase 将数据库下划线命名转换为Java驼峰命名
-// 例如: user_name -> userName, user_id -> userId
+// 例如: user_name -> userName, USER_ID -> userId, ExposureTime -> exposureTime
 func DBStringToCamelCase(s string) string {
 	if s == "" {
 		return ""
@@ -14,12 +14,16 @@ func DBStringToCamelCase(s string) string {
 
 	parts := strings.Split(s, "_")
 	if len(parts) == 1 {
-		// 没有下划线,返回首字母小写的形式
+		// 没有下划线,只做首字母小写处理,保持可能的驼峰格式
 		return FirstLower(s)
 	}
 
-	// 第一个部分首字母小写,其余部分首字母大写
-	result := FirstLower(parts[0])
+	// 有下划线时,先转小写处理大写列名
+	s = strings.ToLower(s)
+	parts = strings.Split(s, "_")
+
+	// 第一个部分保持小写,其余部分首字母大写
+	result := parts[0]
 	for i := 1; i < len(parts); i++ {
 		if parts[i] != "" {
 			result += FirstUpper(parts[i])
@@ -30,7 +34,7 @@ func DBStringToCamelCase(s string) string {
 }
 
 // DBStringToPascalCase 将数据库下划线命名转换为Java Pascal命名(首字母大写)
-// 例如: user_name -> UserName, user_id -> UserId
+// 例如: user_name -> UserName, USER_ID -> UserId, ExposureTime -> ExposureTime
 func DBStringToPascalCase(s string) string {
 	if s == "" {
 		return ""
@@ -38,8 +42,13 @@ func DBStringToPascalCase(s string) string {
 
 	parts := strings.Split(s, "_")
 	if len(parts) == 1 {
+		// 没有下划线,只做首字母大写处理,保持可能的驼峰格式
 		return FirstUpper(s)
 	}
+
+	// 有下划线时,先转小写处理大写列名
+	s = strings.ToLower(s)
+	parts = strings.Split(s, "_")
 
 	var result string
 	for _, part := range parts {
@@ -56,7 +65,7 @@ func FirstUpper(s string) string {
 	if s == "" {
 		return ""
 	}
-	r := []rune(strings.ToLower(s))
+	r := []rune(s)
 	r[0] = unicode.ToUpper(r[0])
 	return string(r)
 }
@@ -66,7 +75,7 @@ func FirstLower(s string) string {
 	if s == "" {
 		return ""
 	}
-	r := []rune(strings.ToLower(s))
+	r := []rune(s)
 	r[0] = unicode.ToLower(r[0])
 	return string(r)
 }

@@ -14,6 +14,8 @@ func TestDBStringToCamelCase(t *testing.T) {
 		{"created_at", "createdAt"},
 		{"USER_NAME", "userName"},
 		{"username", "username"},
+		{"ExposureTime", "exposureTime"}, // 驼峰格式保持
+		{"FocalLength", "focalLength"},   // 驼峰格式保持
 		{"", ""},
 	}
 
@@ -35,6 +37,8 @@ func TestDBStringToPascalCase(t *testing.T) {
 		{"created_at", "CreatedAt"},
 		{"USER_NAME", "UserName"},
 		{"username", "Username"},
+		{"ExposureTime", "ExposureTime"}, // 驼峰格式保持
+		{"FocalLength", "FocalLength"},   // 驼峰格式保持
 		{"", ""},
 	}
 

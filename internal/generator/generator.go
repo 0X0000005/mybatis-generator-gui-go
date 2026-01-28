@@ -404,6 +404,7 @@ type MapperXMLData struct {
 	ModelType         string
 	TableName         string
 	Columns           []*ColumnMapping
+	NonPkColumns      []*ColumnMapping // 非主键列，用于批量操作
 	PrimaryKey        *ColumnMapping
 	OffsetLimit       bool
 	UseGeneratedKeys  bool
@@ -484,9 +485,11 @@ func (g *Generator) prepareMapperXMLData(columns []*database.TableColumn) *Mappe
 
 		data.Columns = append(data.Columns, mapping)
 
-		// 记录主键
+		// 记录主键，否则添加到非主键列
 		if col.ColumnKey == "PRI" {
 			data.PrimaryKey = mapping
+		} else {
+			data.NonPkColumns = append(data.NonPkColumns, mapping)
 		}
 	}
 

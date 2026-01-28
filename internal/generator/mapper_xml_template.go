@@ -84,11 +84,11 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <!-- 批量插入 -->
     <insert id="insertBatch" parameterType="java.util.List"{{if .UseGeneratedKeys}} useGeneratedKeys="true" keyProperty="{{.GenerateKeys}}"{{end}}>
         INSERT INTO {{.TableName}} (
-            {{range $index, $col := .Columns}}{{if or (not $.PrimaryKey) (ne $col.ColumnName $.PrimaryKey.ColumnName)}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}{{end}}
+            {{range $index, $col := .NonPkColumns}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}
         )
         VALUES
         <foreach collection="list" item="item" separator=",">
-            ({{range $index, $col := .Columns}}{{if or (not $.PrimaryKey) (ne $col.ColumnName $.PrimaryKey.ColumnName)}}{{if $index}}, {{end}}#{{"{"}}item.{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}})
+            ({{range $index, $col := .NonPkColumns}}{{if $index}}, {{end}}#{{"{"}}item.{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}})
         </foreach>
     </insert>
 {{end}}
@@ -98,8 +98,8 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <update id="updateBatch" parameterType="java.util.List">
         <foreach collection="list" item="item" separator=";">
             UPDATE {{.TableName}}
-            SET {{range $index, $col := .Columns}}{{if ne $col.ColumnName $.PrimaryKey.ColumnName}}{{if $index}},
-                {{end}}{{$col.ColumnName}} = #{{"{"}}item.{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}}
+            SET {{range $index, $col := .NonPkColumns}}{{if $index}},
+                {{end}}{{$col.ColumnName}} = #{{"{"}}item.{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}
             WHERE {{.PrimaryKey.ColumnName}} = #{{"{"}}item.{{.PrimaryKey.FieldName}},jdbcType={{.PrimaryKey.JdbcType}}{{"}"}}
         </foreach>
     </update>

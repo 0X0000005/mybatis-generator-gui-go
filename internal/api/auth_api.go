@@ -14,7 +14,7 @@ const (
 	// AuthCookieName Cookie 名称
 	AuthCookieName = "mgg_session"
 	// AuthCookieValue 基于版本号，每次更新版本后自动失效旧 session
-	AuthCookieValue = "auth_v1.6.0"
+	AuthCookieValue = "auth_v1.6.1"
 	// UsernameHash 用户名的 bcrypt hash
 	UsernameHash = "$2a$10$knnRQBicLZhhk5DXHmxHR.z9/z2MNxPd1GUtmqZZhKso6dDcgIj2K"
 	// PasswordHash 密码的 bcrypt hash
