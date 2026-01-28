@@ -505,8 +505,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 数据库类型变化时更新默认端口
     document.getElementById('dbType').onchange = (e) => {
-        const port = e.target.value === 'MySQL' ? '3306' : '5432';
-        document.getElementById('port').value = port;
+        const ports = { 'MySQL': '3306', 'PostgreSQL': '5432', 'Oracle': '1521' };
+        document.getElementById('port').value = ports[e.target.value] || '3306';
     };
 
     // @JsonProperty 选项切换时显示/隐藏首字母大写选项

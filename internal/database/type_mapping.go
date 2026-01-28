@@ -60,6 +60,27 @@ var JavaTypeMapping = map[string]map[string]string{
 		"json":              "String",
 		"jsonb":             "String",
 	},
+	"Oracle": {
+		"varchar2":      "String",
+		"nvarchar2":     "String",
+		"char":          "String",
+		"nchar":         "String",
+		"clob":          "String",
+		"nclob":         "String",
+		"long":          "String",
+		"number":        "BigDecimal",
+		"integer":       "Integer",
+		"int":           "Integer",
+		"smallint":      "Integer",
+		"float":         "Double",
+		"binary_float":  "Float",
+		"binary_double": "Double",
+		"date":          "Date",
+		"timestamp":     "Date",
+		"blob":          "byte[]",
+		"raw":           "byte[]",
+		"long raw":      "byte[]",
+	},
 }
 
 // JSR310TypeMapping SQL类型到Java JSR310日期类型的映射
@@ -74,6 +95,10 @@ var JSR310TypeMapping = map[string]map[string]string{
 		"date":      "LocalDate",
 		"timestamp": "LocalDateTime",
 		"time":      "LocalTime",
+	},
+	"Oracle": {
+		"date":      "LocalDateTime",
+		"timestamp": "LocalDateTime",
 	},
 }
 
@@ -136,6 +161,27 @@ var MyBatisJdbcTypeMapping = map[string]map[string]string{
 		"uuid":              "VARCHAR",
 		"json":              "LONGVARCHAR",
 		"jsonb":             "LONGVARCHAR",
+	},
+	"Oracle": {
+		"varchar2":      "VARCHAR",
+		"nvarchar2":     "NVARCHAR",
+		"char":          "CHAR",
+		"nchar":         "NCHAR",
+		"clob":          "CLOB",
+		"nclob":         "NCLOB",
+		"long":          "LONGVARCHAR",
+		"number":        "NUMERIC",
+		"integer":       "INTEGER",
+		"int":           "INTEGER",
+		"smallint":      "SMALLINT",
+		"float":         "FLOAT",
+		"binary_float":  "FLOAT",
+		"binary_double": "DOUBLE",
+		"date":          "DATE",
+		"timestamp":     "TIMESTAMP",
+		"blob":          "BLOB",
+		"raw":           "VARBINARY",
+		"long raw":      "LONGVARBINARY",
 	},
 }
 

@@ -6,6 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/lib/pq v1.10.9
+	github.com/sijms/go-ora/v2 v2.9.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.47.0
 	modernc.org/sqlite v1.44.2

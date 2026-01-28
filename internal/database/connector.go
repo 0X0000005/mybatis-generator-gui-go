@@ -7,6 +7,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	_ "github.com/sijms/go-ora/v2"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/config"
 )
 
@@ -51,6 +52,17 @@ func (c *Connector) Connect() error {
 			c.config.Port,
 			c.config.Username,
 			c.config.Password,
+			c.config.Schema,
+		)
+
+	case config.DbTypeOracle:
+		driverName = "oracle"
+		// Oracle连接字符串格式: oracle://user:password@host:port/service_name
+		dsn = fmt.Sprintf("oracle://%s:%s@%s:%s/%s",
+			c.config.Username,
+			c.config.Password,
+			c.config.Host,
+			c.config.Port,
 			c.config.Schema,
 		)
 
@@ -116,6 +128,14 @@ func (c *Connector) GetTableNames(filter string) ([]string, error) {
 			args = []interface{}{"%" + filter + "%"}
 		} else {
 			query = "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+		}
+
+	case config.DbTypeOracle:
+		if filter != "" {
+			query = "SELECT TABLE_NAME FROM USER_TABLES WHERE TABLE_NAME LIKE :1 ORDER BY TABLE_NAME"
+			args = []interface{}{"%" + strings.ToUpper(filter) + "%"}
+		} else {
+			query = "SELECT TABLE_NAME FROM USER_TABLES ORDER BY TABLE_NAME"
 		}
 
 	default:
@@ -186,6 +206,28 @@ func (c *Connector) GetTableColumns(tableName string) ([]*TableColumn, error) {
 		`
 		args = []interface{}{tableName}
 
+	case config.DbTypeOracle:
+		query = `
+			SELECT 
+				c.COLUMN_NAME,
+				c.DATA_TYPE,
+				NVL(cc.COMMENTS, '') as COLUMN_COMMENT,
+				c.NULLABLE,
+				CASE WHEN pk.COLUMN_NAME IS NOT NULL THEN 'PRI' ELSE '' END as COLUMN_KEY,
+				'' as EXTRA
+			FROM USER_TAB_COLUMNS c
+			LEFT JOIN USER_COL_COMMENTS cc ON c.TABLE_NAME = cc.TABLE_NAME AND c.COLUMN_NAME = cc.COLUMN_NAME
+			LEFT JOIN (
+				SELECT cols.COLUMN_NAME
+				FROM USER_CONSTRAINTS cons
+				JOIN USER_CONS_COLUMNS cols ON cons.CONSTRAINT_NAME = cols.CONSTRAINT_NAME
+				WHERE cons.TABLE_NAME = :1 AND cons.CONSTRAINT_TYPE = 'P'
+			) pk ON c.COLUMN_NAME = pk.COLUMN_NAME
+			WHERE c.TABLE_NAME = :2
+			ORDER BY c.COLUMN_ID
+		`
+		args = []interface{}{strings.ToUpper(tableName), strings.ToUpper(tableName)}
+
 	default:
 		return nil, fmt.Errorf("不支持的数据库类型: %s", c.config.DbType)
 	}
@@ -248,6 +290,14 @@ func (c *Connector) GetTableComment(tableName string) (string, error) {
 			WHERE c.relname = $1 AND n.nspname = 'public'
 		`
 		args = []interface{}{tableName}
+
+	case config.DbTypeOracle:
+		query = `
+			SELECT NVL(COMMENTS, '') as TABLE_COMMENT
+			FROM USER_TAB_COMMENTS
+			WHERE TABLE_NAME = :1
+		`
+		args = []interface{}{strings.ToUpper(tableName)}
 
 	default:
 		return "", fmt.Errorf("不支持的数据库类型: %s", c.config.DbType)
