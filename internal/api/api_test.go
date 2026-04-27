@@ -339,6 +339,7 @@ func TestGenerateCode_InvalidDatabase(t *testing.T) {
 
 	requestData := map[string]interface{}{
 		"databaseId": 999, // 不存在的ID
+		"tableNames": []string{"test_table"},
 		"config": map[string]interface{}{
 			"tableName":        "test_table",
 			"domainObjectName": "TestEntity",

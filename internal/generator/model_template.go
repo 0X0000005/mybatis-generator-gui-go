@@ -63,6 +63,7 @@ import java.io.Serializable;
 const modelLombokTemplate = `package {{.Package}};
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 {{if .NeedConstructors}}import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 {{end}}import java.io.Serializable;
@@ -74,6 +75,7 @@ import lombok.AllArgsConstructor;
  * {{.TableComment}}
  */
 {{end}}@Data
+@EqualsAndHashCode(callSuper = false)
 {{if .NeedConstructors}}@NoArgsConstructor
 @AllArgsConstructor
 {{end}}public class {{.ClassName}} implements Serializable {
