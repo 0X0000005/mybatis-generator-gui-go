@@ -8,6 +8,8 @@ type TableColumn struct {
 	IsNullable    bool   `json:"isNullable"`    // 是否可为空
 	ColumnKey     string `json:"columnKey"`     // 键类型 (PRI, UNI, MUL)
 	Extra         string `json:"extra"`         // 额外信息 (auto_increment等)
+	JavaType      string `json:"javaType"`      // 映射的Java类型
+	JdbcType      string `json:"jdbcType"`      // 映射的JDBC类型
 }
 
 // TableInfo 表信息

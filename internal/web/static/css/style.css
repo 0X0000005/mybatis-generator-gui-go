@@ -752,53 +752,74 @@ header h1 {
     background: white;
 }
 
-.snippet-field-list {
+.field-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px;
     max-height: 220px;
     overflow-y: auto;
-    padding: 6px 0;
+    background: #ffffff;
 }
 
-.snippet-field-row {
+.field-chip {
     display: flex;
-    align-items: center;
-    padding: 6px 14px;
-    gap: 8px;
-    border-bottom: 1px solid #f0f0f0;
-    transition: background 0.15s;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    position: relative;
+    min-width: 120px;
 }
 
-.snippet-field-row:last-child {
-    border-bottom: none;
-}
-
-.snippet-field-row:hover {
+.field-chip:hover {
     background: #eef2ff;
+    border-color: #c7d2fe;
 }
 
-.snippet-field-check {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
+.field-chip.selected {
+    background: #e0e7ff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 1px #6366f1;
+}
+
+.field-chip.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: #4f46e5;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.chip-col-name {
+    font-weight: 600;
+    color: #374151;
     font-size: 13px;
-    margin: 0;
+    margin-bottom: 2px;
 }
 
-.snippet-field-check input[type="checkbox"] {
-    width: 15px;
-    height: 15px;
-    cursor: pointer;
-}
-
-.col-name {
-    font-weight: 500;
-    color: #333;
-}
-
-.col-type {
-    color: #999;
+.chip-col-type {
+    color: #9ca3af;
     font-size: 11px;
+}
+
+.orderby-dir-select {
+    margin-top: 6px;
+    padding: 2px 4px;
+    font-size: 11px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    outline: none;
 }
 
 .field-order-btns {

@@ -256,6 +256,10 @@ func (c *Connector) GetTableColumns(tableName string) ([]*TableColumn, error) {
 
 		// 处理 IS_NULLABLE
 		column.IsNullable = strings.ToUpper(isNullableStr) == "YES" || isNullableStr == "true" || isNullableStr == "t"
+		
+		// 映射 JavaType 和 JdbcType
+		column.JavaType = GetJavaType(c.config.DbType, column.DataType, false) // 默认不使用 JSR310，由前端覆盖
+		column.JdbcType = GetJdbcType(c.config.DbType, column.DataType)
 
 		columns = append(columns, &column)
 	}

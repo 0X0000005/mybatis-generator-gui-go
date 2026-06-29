@@ -302,6 +302,9 @@ func buildWhereClause(f config.SnippetField, batchMode bool) string {
 	case "LIKE":
 		return fmt.Sprintf("%s LIKE CONCAT('%%', #{%s%s,jdbcType=%s}, '%%')",
 			f.ColumnName, prefix, f.FieldName, f.JdbcType)
+	case "IN", "NOT IN":
+		return fmt.Sprintf("%s %s\n        <foreach collection=\"%s\" item=\"item\" open=\"(\" separator=\",\" close=\")\">\n            #{item,jdbcType=%s}\n        </foreach>",
+			f.ColumnName, op, f.FieldName, f.JdbcType)
 	default:
 		return fmt.Sprintf("%s %s #{%s%s,jdbcType=%s}",
 			f.ColumnName, op, prefix, f.FieldName, f.JdbcType)
@@ -347,7 +350,13 @@ func buildSelectMethodName(cfg *config.SnippetConfig) string {
 	}
 	parts := make([]string, len(effective))
 	for i, f := range effective {
-		parts[i] = capitalize(f.FieldName)
+		part := capitalize(f.FieldName)
+		if f.Operator == "IN" {
+			part += "In"
+		} else if f.Operator == "NOT IN" {
+			part += "NotIn"
+		}
+		parts[i] = part
 	}
 	if cfg.IsBatch {
 		return "selectBy" + strings.Join(parts, "And") + "In"
@@ -362,7 +371,13 @@ func buildDeleteMethodName(cfg *config.SnippetConfig) string {
 	}
 	parts := make([]string, len(effective))
 	for i, f := range effective {
-		parts[i] = capitalize(f.FieldName)
+		part := capitalize(f.FieldName)
+		if f.Operator == "IN" {
+			part += "In"
+		} else if f.Operator == "NOT IN" {
+			part += "NotIn"
+		}
+		parts[i] = part
 	}
 	if cfg.IsBatch {
 		return "deleteBy" + strings.Join(parts, "And") + "In"
@@ -378,7 +393,13 @@ func buildUpdateMethodName(cfg *config.SnippetConfig) string {
 	effective := effectiveWhereFields(cfg.WhereFields)
 	whereParts := make([]string, len(effective))
 	for i, f := range effective {
-		whereParts[i] = capitalize(f.FieldName)
+		part := capitalize(f.FieldName)
+		if f.Operator == "IN" {
+			part += "In"
+		} else if f.Operator == "NOT IN" {
+			part += "NotIn"
+		}
+		whereParts[i] = part
 	}
 	name := "update"
 	if len(setParts) > 0 {
@@ -416,12 +437,20 @@ func buildJavaParams(fields []config.SnippetField) string {
 	}
 	if len(effective) == 1 {
 		f := effective[0]
-		return fmt.Sprintf("%s %s", f.JavaType, f.FieldName)
+		javaType := f.JavaType
+		if f.Operator == "IN" || f.Operator == "NOT IN" {
+			javaType = "java.util.List<" + f.JavaType + ">"
+		}
+		return fmt.Sprintf("%s %s", javaType, f.FieldName)
 	}
 	parts := make([]string, len(effective))
 	for i, f := range effective {
+		javaType := f.JavaType
+		if f.Operator == "IN" || f.Operator == "NOT IN" {
+			javaType = "java.util.List<" + f.JavaType + ">"
+		}
 		parts[i] = fmt.Sprintf("@org.apache.ibatis.annotations.Param(\"%s\") %s %s",
-			f.FieldName, f.JavaType, f.FieldName)
+			f.FieldName, javaType, f.FieldName)
 	}
 	return strings.Join(parts, ", ")
 }

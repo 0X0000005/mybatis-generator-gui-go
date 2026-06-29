@@ -736,12 +736,15 @@ function collectChipFields(panelId) {
     container.querySelectorAll('.field-chip.selected').forEach(chip => {
         const colIdx = parseInt(chip.dataset.colIdx);
         const col = snippetTableColumns[colIdx];
-        if (col) result.push({
-            columnName: col.columnName,
-            fieldName: col.fieldName || snakeToCamel(col.columnName),
-            jdbcType: col.jdbcType || col.dataType.toUpperCase(),
-            javaType: col.javaType || 'Object'
-        });
+        if (col) {
+            const override = columnOverrides.find(o => o.columnName === col.columnName) || {};
+            result.push({
+                columnName: col.columnName,
+                fieldName: override.propertyName || col.fieldName || snakeToCamel(col.columnName),
+                jdbcType: override.jdbcType || col.jdbcType || col.dataType.toUpperCase(),
+                javaType: override.javaType || col.javaType || 'Object'
+            });
+        }
     });
     return result;
 }
@@ -754,12 +757,15 @@ function collectOrderByFields() {
         const colIdx = parseInt(chip.dataset.colIdx);
         const col = snippetTableColumns[colIdx];
         const direction = orderBySelections.get(colIdx) || 'ASC';
-        if (col) result.push({
-            columnName: col.columnName,
-            fieldName: col.fieldName || snakeToCamel(col.columnName),
-            jdbcType: col.jdbcType || col.dataType.toUpperCase(),
-            direction
-        });
+        if (col) {
+            const override = columnOverrides.find(o => o.columnName === col.columnName) || {};
+            result.push({
+                columnName: col.columnName,
+                fieldName: override.propertyName || col.fieldName || snakeToCamel(col.columnName),
+                jdbcType: override.jdbcType || col.jdbcType || col.dataType.toUpperCase(),
+                direction
+            });
+        }
     });
     return result;
 }
@@ -771,9 +777,9 @@ function snakeToCamel(s) {
 // -----------------------------------------------------------------------
 // QueryBuilder WHERE 构建器
 // -----------------------------------------------------------------------
-const QB_OPERATORS = ['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'IS NULL', 'IS NOT NULL'];
+const QB_OPERATORS = ['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'IN', 'NOT IN', 'IS NULL', 'IS NOT NULL'];
 const QB_OP_LABELS = { '=': '= 等于', '!=': '≠ 不等于', '>': '> 大于', '<': '< 小于',
-    '>=': '≥ 大于等于', '<=': '≤ 小于等于', 'LIKE': '≈ 模糊匹配',
+    '>=': '≥ 大于等于', '<=': '≤ 小于等于', 'LIKE': '≈ 模糊匹配', 'IN': '∈ 包含', 'NOT IN': '∉ 不包含',
     'IS NULL': '∅ 为空', 'IS NOT NULL': '∈ 非空' };
 
 function buildQueryBuilderPanel() {
@@ -860,11 +866,12 @@ function collectWhereConditions() {
     return whereRules.map(rule => {
         const col = snippetTableColumns[rule.fieldIdx];
         if (!col) return null;
+        const override = columnOverrides.find(o => o.columnName === col.columnName) || {};
         return {
             columnName: col.columnName,
-            fieldName: col.fieldName || snakeToCamel(col.columnName),
-            jdbcType: col.jdbcType || col.dataType.toUpperCase(),
-            javaType: col.javaType || 'Object',
+            fieldName: override.propertyName || col.fieldName || snakeToCamel(col.columnName),
+            jdbcType: override.jdbcType || col.jdbcType || col.dataType.toUpperCase(),
+            javaType: override.javaType || col.javaType || 'Object',
             operator: rule.operator || '='
         };
     }).filter(Boolean);
@@ -910,6 +917,13 @@ function addSnippet() {
         cfg.methodName = computeMethodName(cfg);
     }
     
+    // Check for duplicate method names
+    const duplicateIdx = snippetList.findIndex((s, idx) => s.methodName === cfg.methodName && idx !== editingSnippetIndex);
+    if (duplicateIdx !== -1) {
+        showMessage(`方法名 '${cfg.methodName}' 已存在，请手动修改以避免冲突！`, 'error');
+        return;
+    }
+    
     if (editingSnippetIndex !== null) {
         snippetList[editingSnippetIndex] = cfg;
         showMessage('片段已保存修改', 'success');
@@ -923,7 +937,13 @@ function addSnippet() {
 
 function updateSnippetMethodName(idx, val) {
     if (snippetList[idx]) {
-        snippetList[idx].methodName = val.trim();
+        const newName = val.trim();
+        const duplicateIdx = snippetList.findIndex((s, i) => s.methodName === newName && i !== idx);
+        if (duplicateIdx !== -1 && newName !== "") {
+            showMessage(`方法名 '${newName}' 已存在，请使用其他名称！`, 'error');
+            return;
+        }
+        snippetList[idx].methodName = newName;
         showMessage('方法名已更新', 'success');
     }
 }
