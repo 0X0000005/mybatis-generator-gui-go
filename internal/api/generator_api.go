@@ -22,12 +22,13 @@ var (
 	generatedZipsMu sync.RWMutex
 )
 
-// GenerateCode 生成代码
+// GenerateCode 生成代码（支持可选的自定义片段合并）
 func GenerateCode(c *gin.Context) {
 	var req struct {
-		DatabaseID int                    `json:"databaseId"`
-		TableNames []string               `json:"tableNames"`
-		Config     config.GeneratorConfig `json:"config"`
+		DatabaseID     int                     `json:"databaseId"`
+		TableNames     []string                `json:"tableNames"`
+		Config         config.GeneratorConfig  `json:"config"`
+		SnippetConfigs []config.SnippetConfig  `json:"snippetConfigs"` // 可选，Tab2自定义片段
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -41,7 +42,14 @@ func GenerateCode(c *gin.Context) {
 		return
 	}
 
-	log.Printf("INFO: 开始生成代码 - DatabaseID: %d, Tables: %v", req.DatabaseID, req.TableNames)
+	// 有片段配置时只允许单张表
+	if len(req.SnippetConfigs) > 0 && len(req.TableNames) > 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "使用自定义片段时仅支持单张表"})
+		return
+	}
+
+	log.Printf("INFO: 开始生成代码 - DatabaseID: %d, Tables: %v, Snippets: %d",
+		req.DatabaseID, req.TableNames, len(req.SnippetConfigs))
 
 	// 获取当前工作目录
 	currentDir, err := os.Getwd()
@@ -103,6 +111,19 @@ func GenerateCode(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("生成表 %s 失败: %v", tableName, err)})
 			return
 		}
+
+		// 若有自定义片段配置，追加写入到生成的文件
+		if len(req.SnippetConfigs) > 0 {
+			mapperName := tableConfig.MapperName
+			modelType := tableConfig.ModelPackage + "." + tableConfig.DomainObjectName
+
+			if err := appendSnippetsToFiles(files, tableName, mapperName, modelType, req.SnippetConfigs); err != nil {
+				log.Printf("ERROR: 追加自定义片段失败: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "追加自定义片段失败: " + err.Error()})
+				return
+			}
+		}
+
 		allFiles = append(allFiles, files...)
 	}
 
@@ -134,6 +155,105 @@ func GenerateCode(c *gin.Context) {
 		"downloadId": downloadID,
 		"files":      getFileNames(allFiles),
 		"tableCount": len(req.TableNames),
+	})
+}
+
+// appendSnippetsToFiles 将自定义片段追加写入生成的文件
+func appendSnippetsToFiles(files []string, tableName, mapperName, modelType string, snippets []config.SnippetConfig) error {
+	// 找到 Mapper.java 和 Mapper.xml 文件路径
+	var javaFile, xmlFile string
+	for _, f := range files {
+		ext := strings.ToLower(filepath.Ext(f))
+		if ext == ".java" && strings.Contains(filepath.Base(f), "Mapper") {
+			javaFile = f
+		} else if ext == ".xml" {
+			xmlFile = f
+		}
+	}
+
+	// 收集所有片段的Java代码和XML代码
+	var allJavaCodes, allXMLCodes []string
+	for i, snippet := range snippets {
+		result, err := generator.GenerateSnippet(&snippet, mapperName, modelType, tableName)
+		if err != nil {
+			return fmt.Errorf("片段%d生成失败: %v", i+1, err)
+		}
+		allJavaCodes = append(allJavaCodes, result.JavaCode)
+		allXMLCodes = append(allXMLCodes, result.XMLCode)
+	}
+
+	// 追加到 Mapper.java
+	if javaFile != "" && len(allJavaCodes) > 0 {
+		content, err := os.ReadFile(javaFile)
+		if err != nil {
+			return fmt.Errorf("读取Mapper.java失败: %v", err)
+		}
+		newContent := generator.AppendSnippetToJava(string(content), strings.Join(allJavaCodes, "\n"))
+		if err := os.WriteFile(javaFile, []byte(newContent), 0644); err != nil {
+			return fmt.Errorf("写入Mapper.java失败: %v", err)
+		}
+		log.Printf("INFO: 已追加 %d 个片段到 %s", len(allJavaCodes), filepath.Base(javaFile))
+	}
+
+	// 追加到 Mapper.xml
+	if xmlFile != "" && len(allXMLCodes) > 0 {
+		content, err := os.ReadFile(xmlFile)
+		if err != nil {
+			return fmt.Errorf("读取Mapper.xml失败: %v", err)
+		}
+		newContent := generator.AppendSnippetToXML(string(content), strings.Join(allXMLCodes, "\n\n"))
+		if err := os.WriteFile(xmlFile, []byte(newContent), 0644); err != nil {
+			return fmt.Errorf("写入Mapper.xml失败: %v", err)
+		}
+		log.Printf("INFO: 已追加 %d 个片段到 %s", len(allXMLCodes), filepath.Base(xmlFile))
+	}
+
+	return nil
+}
+
+// PreviewSnippet 预览自定义片段代码（不生成文件，直接返回代码字符串）
+func PreviewSnippet(c *gin.Context) {
+	var req struct {
+		TableName      string               `json:"tableName"`
+		MapperName     string               `json:"mapperName"`
+		ModelType      string               `json:"modelType"`
+		SnippetConfigs []config.SnippetConfig `json:"snippetConfigs"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("ERROR: 解析片段预览请求失败: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(req.SnippetConfigs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "片段配置不能为空"})
+		return
+	}
+
+	var javaBuilder, xmlBuilder strings.Builder
+	xmlBuilder.WriteString("<!-- 以下片段追加至 Mapper.xml 的 </mapper> 前 -->\n\n")
+	javaBuilder.WriteString("// 以下方法声明追加至 Mapper 接口最后一个 } 前\n\n")
+
+	for i, snippet := range req.SnippetConfigs {
+		result, err := generator.GenerateSnippet(&snippet, req.MapperName, req.ModelType, req.TableName)
+		if err != nil {
+			log.Printf("ERROR: 片段%d预览失败: %v", i+1, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("片段%d生成失败: %v", i+1, err)})
+			return
+		}
+		javaBuilder.WriteString(result.JavaCode)
+		javaBuilder.WriteString("\n")
+		xmlBuilder.WriteString(result.XMLCode)
+		xmlBuilder.WriteString("\n\n")
+	}
+
+	log.Printf("INFO: 片段预览成功 - Table: %s, Snippets: %d", req.TableName, len(req.SnippetConfigs))
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":  true,
+		"javaCode": javaBuilder.String(),
+		"xmlCode":  xmlBuilder.String(),
 	})
 }
 

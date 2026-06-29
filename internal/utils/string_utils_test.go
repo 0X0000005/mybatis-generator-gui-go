@@ -16,6 +16,7 @@ func TestDBStringToCamelCase(t *testing.T) {
 		{"username", "username"},
 		{"ExposureTime", "exposureTime"}, // 驼峰格式保持
 		{"FocalLength", "focalLength"},   // 驼峰格式保持
+		{"_user_id", "userId"},
 		{"", ""},
 	}
 

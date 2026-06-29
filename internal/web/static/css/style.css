@@ -635,3 +635,521 @@ header h1 {
     color: #aaa;
     font-style: italic;
 }
+
+/* ============================================================
+   Tab 结构
+============================================================ */
+.tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #e9ecef;
+    margin-bottom: 0;
+}
+
+.tab-btn {
+    padding: 12px 24px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6c757d;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: #667eea;
+    background: #f8f9fa;
+}
+
+.tab-btn.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    background: transparent;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* ============================================================
+   自定义片段面板
+============================================================ */
+.snippet-warning {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    color: #856404;
+    font-size: 14px;
+}
+
+.snippet-warning-info {
+    background: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+.snippet-table-info {
+    background: #f0f4ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #4338ca;
+}
+
+.snippet-hint {
+    background: #e0f2fe;
+    border: 1px solid #7dd3fc;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #0369a1;
+}
+
+.snippet-hint-success {
+    background: #d1fae5;
+    border: 1px solid #6ee7b7;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #065f46;
+}
+
+/* 字段选择面板 */
+.snippet-field-panel {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.snippet-field-panel-title {
+    background: #667eea;
+    color: white;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.snippet-field-panel-hint {
+    padding: 6px 14px;
+    font-size: 12px;
+    color: #6c757d;
+    border-bottom: 1px solid #dee2e6;
+    background: white;
+}
+
+.snippet-field-list {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 6px 0;
+}
+
+.snippet-field-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 14px;
+    gap: 8px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s;
+}
+
+.snippet-field-row:last-child {
+    border-bottom: none;
+}
+
+.snippet-field-row:hover {
+    background: #eef2ff;
+}
+
+.snippet-field-check {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    margin: 0;
+}
+
+.snippet-field-check input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
+.col-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.col-type {
+    color: #999;
+    font-size: 11px;
+}
+
+.field-order-btns {
+    display: flex;
+    gap: 2px;
+}
+
+.field-order-btn {
+    background: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 2px 7px;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #495057;
+    transition: background 0.15s;
+}
+
+.field-order-btn:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+/* 片段列表 */
+.snippet-list {
+    margin-top: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.snippet-list-header {
+    background: #495057;
+    color: white;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.snippet-items {
+    background: white;
+    min-height: 60px;
+}
+
+.snippet-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.snippet-item:last-child {
+    border-bottom: none;
+}
+
+.snippet-item-badge {
+    background: #667eea;
+    color: white;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.snippet-item-name {
+    flex: 1;
+    font-size: 13px;
+    color: #333;
+    font-family: monospace;
+}
+
+.snippet-empty {
+    padding: 20px 14px;
+    color: #aaa;
+    font-size: 13px;
+    font-style: italic;
+    text-align: center;
+}
+
+/* 片段操作按钮区 */
+.snippet-actions {
+    flex-wrap: wrap;
+}
+
+/* switch 标签 */
+.switch-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 10px 0;
+    font-size: 14px;
+    color: #495057;
+    font-weight: 500;
+}
+
+.switch-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* 按钮尺寸 */
+.btn-sm {
+    padding: 5px 12px;
+    font-size: 12px;
+}
+
+/* 警告色按钮 */
+.btn-warning {
+    background: #fd7e14;
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #e96a02;
+}
+
+/* ============================================================
+   片段预览弹窗
+============================================================ */
+.snippet-preview-modal {
+    max-width: 860px;
+}
+
+.snippet-preview-section {
+    margin-bottom: 20px;
+}
+
+.snippet-preview-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #495057;
+    color: white;
+    border-radius: 6px 6px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.snippet-code-block {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    padding: 16px;
+    border-radius: 0 0 6px 6px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 0;
+}
+
+/* ============================================================
+   ★ 特别显著的添加片段按钮 ★
+============================================================ */
+.snippet-add-area {
+    margin: 25px 0;
+    text-align: center;
+}
+
+.btn-add-snippet {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    font-size: 20px;
+    font-weight: 700;
+    padding: 18px 50px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: inline-block;
+    letter-spacing: 1px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.btn-add-snippet:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 25px rgba(16, 185, 129, 0.5);
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    animation: none;
+}
+
+.btn-add-snippet:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+}
+
+.btn-add-snippet.btn-edit-mode {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+    animation: none;
+}
+
+.btn-add-snippet.btn-edit-mode:hover {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    box-shadow: 0 12px 25px rgba(59, 130, 246, 0.5);
+}
+
+.snippet-add-hint {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* ============================================================
+   React QueryBuilder 风格
+============================================================ */
+.qb-container {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 12px;
+    margin: 10px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.qb-header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 8px;
+}
+
+.qb-combinator-group {
+    display: flex;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.qb-comb-btn {
+    background: transparent;
+    border: none;
+    border-right: 1px solid #d1d5db;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.qb-comb-btn:last-child {
+    border-right: none;
+}
+
+.qb-comb-btn:hover {
+    background: #f3f4f6;
+}
+
+.qb-comb-btn.active {
+    background: #3b82f6;
+    color: white;
+}
+
+.qb-add-rule-btn {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.qb-add-rule-btn:hover {
+    background: #f3f4f6;
+}
+
+.qb-rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.qb-rule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: border-color 0.2s;
+}
+
+.qb-field-select,
+.qb-op-select {
+    padding: 6px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #374151;
+    background: white;
+    outline: none;
+}
+
+.qb-field-select:focus,
+.qb-op-select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.qb-remove-btn {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.qb-remove-btn:hover {
+    color: #ef4444;
+    background: #fee2e2;
+}
+
+.qb-empty {
+    font-size: 13px;
+    color: #9ca3af;
+    font-style: italic;
+    padding: 10px 0;
+}

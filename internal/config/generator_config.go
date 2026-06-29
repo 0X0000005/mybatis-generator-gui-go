@@ -36,6 +36,7 @@ type GeneratorConfig struct {
 	JsonPropertyUpperCase      bool `json:"jsonPropertyUpperCase"`      // @JsonProperty首字母大写
 	UseBatchInsert             bool `json:"useBatchInsert"`             // 是否生成批量插入
 	UseBatchUpdate             bool `json:"useBatchUpdate"`             // 是否生成批量更新
+	IgnorePKOnInsert           bool `json:"ignorePKOnInsert"`           // 插入时是否忽略主键
 
 	// 列定制
 	IgnoredColumns  []string         `json:"ignoredColumns"`  // 忽略的列名列表

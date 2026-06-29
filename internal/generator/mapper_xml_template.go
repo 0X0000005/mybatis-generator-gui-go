@@ -26,10 +26,10 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <!-- 插入 -->
     <insert id="insert" parameterType="{{.ModelType}}"{{if .UseGeneratedKeys}} useGeneratedKeys="true" keyProperty="{{.GenerateKeys}}"{{end}}>
         INSERT INTO {{.TableName}} (
-            {{range $index, $col := .Columns}}{{if or (not $.PrimaryKey) (ne $col.ColumnName $.PrimaryKey.ColumnName)}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}{{end}}
+            {{range $index, $col := .InsertColumns}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}
         )
         VALUES (
-            {{range $index, $col := .Columns}}{{if or (not $.PrimaryKey) (ne $col.ColumnName $.PrimaryKey.ColumnName)}}{{if $index}}, {{end}}#{{"{"}}{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}{{end}}
+            {{range $index, $col := .InsertColumns}}{{if $index}}, {{end}}#{{"{"}}{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}}
         )
     </insert>
 
@@ -37,15 +37,15 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <insert id="insertSelective" parameterType="{{.ModelType}}"{{if .UseGeneratedKeys}} useGeneratedKeys="true" keyProperty="{{.GenerateKeys}}"{{end}}>
         INSERT INTO {{.TableName}}
         <trim prefix="(" suffix=")" suffixOverrides=",">
-{{range .Columns}}{{if or (not $.PrimaryKey) (ne .ColumnName $.PrimaryKey.ColumnName)}}            <if test="{{.FieldName}} != null">
+{{range .InsertColumns}}            <if test="{{.FieldName}} != null">
                 {{.ColumnName}},
             </if>
-{{end}}{{end}}        </trim>
+{{end}}        </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
-{{range .Columns}}{{if or (not $.PrimaryKey) (ne .ColumnName $.PrimaryKey.ColumnName)}}            <if test="{{.FieldName}} != null">
+{{range .InsertColumns}}            <if test="{{.FieldName}} != null">
                 #{{"{"}}{{.FieldName}},jdbcType={{.JdbcType}}{{"}"}},
             </if>
-{{end}}{{end}}        </trim>
+{{end}}        </trim>
     </insert>
 {{if .PrimaryKey}}
     <!-- 根据主键更新 -->
@@ -84,11 +84,11 @@ const mapperXMLTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <!-- 批量插入 -->
     <insert id="insertBatch" parameterType="java.util.List"{{if .UseGeneratedKeys}} useGeneratedKeys="true" keyProperty="{{.GenerateKeys}}"{{end}}>
         INSERT INTO {{.TableName}} (
-            {{range $index, $col := .NonPkColumns}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}
+            {{range $index, $col := .InsertColumns}}{{if $index}}, {{end}}{{$col.ColumnName}}{{end}}
         )
         VALUES
         <foreach collection="list" item="item" separator=",">
-            ({{range $index, $col := .NonPkColumns}}{{if $index}}, {{end}}#{{"{"}}item.{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}})
+            ({{range $index, $col := .InsertColumns}}{{if $index}}, {{end}}#{{"{"}}item.{{$col.FieldName}},jdbcType={{$col.JdbcType}}{{"}"}}{{end}})
         </foreach>
     </insert>
 {{end}}

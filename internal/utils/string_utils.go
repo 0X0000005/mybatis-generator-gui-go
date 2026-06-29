@@ -23,10 +23,16 @@ func DBStringToCamelCase(s string) string {
 	parts = strings.Split(s, "_")
 
 	// 第一个部分保持小写,其余部分首字母大写
-	result := parts[0]
-	for i := 1; i < len(parts); i++ {
-		if parts[i] != "" {
-			result += FirstUpper(parts[i])
+	var result string
+	first := true
+	for _, part := range parts {
+		if part != "" {
+			if first {
+				result += FirstLower(part)
+				first = false
+			} else {
+				result += FirstUpper(part)
+			}
 		}
 	}
 

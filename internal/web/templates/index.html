@@ -49,130 +49,231 @@
                 </div>
             </aside>
 
-            <!-- 右侧：代码生成配置 -->
+            <!-- 右侧：标签页 -->
             <main class="content">
-                <div class="section">
-                    <h2>代码生成配置</h2>
+                <!-- Tab 导航 -->
+                <div class="tab-bar">
+                    <button class="tab-btn active" id="tabBtnConfig" onclick="switchTab('config')">⚙️ 生成配置</button>
+                    <button class="tab-btn" id="tabBtnSnippet" onclick="switchTab('snippet')">✂️ 自定义片段</button>
+                </div>
 
-                    <form id="generatorForm">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Model包名</label>
-                                <input type="text" id="modelPackage" class="form-input" value="com.example.model"
-                                    placeholder="com.example.model">
-                            </div>
-                            <div class="form-group">
-                                <label>Model目标文件夹</label>
-                                <input type="text" id="modelTargetFolder" class="form-input" value="src/main/java">
-                            </div>
-                        </div>
+                <!-- Tab1: 生成配置（保持原样） -->
+                <div id="tabConfig" class="tab-panel active">
+                    <div class="section">
+                        <h2>代码生成配置</h2>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>DAO包名</label>
-                                <input type="text" id="daoPackage" class="form-input" value="com.example.mapper"
-                                    placeholder="com.example.mapper">
-                            </div>
-                            <div class="form-group">
-                                <label>DAO目标文件夹</label>
-                                <input type="text" id="daoTargetFolder" class="form-input" value="src/main/java">
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Mapper包名</label>
-                                <input type="text" id="mapperPackage" class="form-input" value="mapper"
-                                    placeholder="mapper">
-                            </div>
-                            <div class="form-group">
-                                <label>Mapper目标文件夹</label>
-                                <input type="text" id="mapperTargetFolder" class="form-input"
-                                    value="src/main/resources">
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>表名</label>
-                                <input type="text" id="tableName" class="form-input" readonly placeholder="请先选择表">
-                            </div>
-                            <div class="form-group">
-                                <label>实体类名</label>
-                                <input type="text" id="domainObjectName" class="form-input" placeholder="自动生成">
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Mapper名</label>
-                                <input type="text" id="mapperName" class="form-input" placeholder="自动生成">
-                            </div>
-                            <div class="form-group">
-                                <label>主键字段 <small style="color: #999;">(从数据库自动识别)</small></label>
-                                <input type="text" id="generateKeys" class="form-input" readonly placeholder="id">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>编码格式</label>
-                            <select id="encoding" class="form-input">
-                                <option value="UTF-8" selected>UTF-8</option>
-                                <option value="GBK">GBK</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>生成选项</label>
-
-                            <!-- 代码风格 -->
-                            <div class="option-section">
-                                <div class="option-section-title">代码风格</div>
-                                <div class="checkbox-group-grid">
-                                    <label><input type="checkbox" id="useLombokPlugin" checked> 使用Lombok</label>
-                                    <label><input type="checkbox" id="comment" checked> 生成注释</label>
-                                    <label><input type="checkbox" id="needToStringHashcodeEquals">
-                                        生成toString/hashCode/equals</label>
-                                    <label><input type="checkbox" id="needConstructors" checked> 生成构造方法</label>
+                        <form id="generatorForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Model包名</label>
+                                    <input type="text" id="modelPackage" class="form-input" value="com.example.model"
+                                        placeholder="com.example.model">
+                                </div>
+                                <div class="form-group">
+                                    <label>Model目标文件夹</label>
+                                    <input type="text" id="modelTargetFolder" class="form-input" value="src/main/java">
                                 </div>
                             </div>
 
-                            <!-- SQL选项 -->
-                            <div class="option-section">
-                                <div class="option-section-title">SQL选项</div>
-                                <div class="checkbox-group-grid">
-                                    <label><input type="checkbox" id="offsetLimit"> 生成分页查询</label>
-                                    <label><input type="checkbox" id="overrideXML"> 覆盖XML文件</label>
-                                    <label><input type="checkbox" id="needForUpdate"> Select增加FOR UPDATE</label>
-                                    <label><input type="checkbox" id="useTableNameAlias"> 使用表别名</label>
-                                    <label><input type="checkbox" id="useBatchInsert"> 生成批量插入</label>
-                                    <label><input type="checkbox" id="useBatchUpdate"> 生成批量更新</label>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>DAO包名</label>
+                                    <input type="text" id="daoPackage" class="form-input" value="com.example.mapper"
+                                        placeholder="com.example.mapper">
+                                </div>
+                                <div class="form-group">
+                                    <label>DAO目标文件夹</label>
+                                    <input type="text" id="daoTargetFolder" class="form-input" value="src/main/java">
                                 </div>
                             </div>
 
-                            <!-- 属性选项 -->
-                            <div class="option-section">
-                                <div class="option-section-title">属性选项</div>
-                                <div class="checkbox-group-grid">
-                                    <label><input type="checkbox" id="jsr310Support"> 使用JSR310日期类型</label>
-                                    <label><input type="checkbox" id="useActualColumnNames"> 使用实际列名</label>
-                                    <label><input type="checkbox" id="useJsonProperty"> 使用@JsonProperty</label>
-                                    <label id="jsonPropertyOptionsLabel" style="display: none;"><input type="checkbox"
-                                            id="jsonPropertyUpperCase"> 首字母大写</label>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Mapper包名</label>
+                                    <input type="text" id="mapperPackage" class="form-input" value="mapper"
+                                        placeholder="mapper">
+                                </div>
+                                <div class="form-group">
+                                    <label>Mapper目标文件夹</label>
+                                    <input type="text" id="mapperTargetFolder" class="form-input"
+                                        value="src/main/resources">
                                 </div>
                             </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>表名</label>
+                                    <input type="text" id="tableName" class="form-input" readonly placeholder="请先选择表">
+                                </div>
+                                <div class="form-group">
+                                    <label>实体类名 <small style="color:#999;">(默认自动生成)</small></label>
+                                    <input type="text" id="domainObjectName" class="form-input" placeholder="请先选择表">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Mapper名 <small style="color:#999;">(默认自动生成)</small></label>
+                                    <input type="text" id="mapperName" class="form-input" placeholder="请先选择表">
+                                </div>
+                                <div class="form-group">
+                                    <label>主键字段 <small style="color: #999;">(从数据库自动识别)</small></label>
+                                    <input type="text" id="generateKeys" class="form-input" readonly placeholder="id">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>编码格式</label>
+                                <select id="encoding" class="form-input">
+                                    <option value="UTF-8" selected>UTF-8</option>
+                                    <option value="GBK">GBK</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>生成选项</label>
+
+                                <!-- 代码风格 -->
+                                <div class="option-section">
+                                    <div class="option-section-title">代码风格</div>
+                                    <div class="checkbox-group-grid">
+                                        <label><input type="checkbox" id="useLombokPlugin" checked> 使用Lombok</label>
+                                        <label><input type="checkbox" id="comment" checked> 生成注释</label>
+                                        <label><input type="checkbox" id="needToStringHashcodeEquals">
+                                            生成toString/hashCode/equals</label>
+                                        <label><input type="checkbox" id="needConstructors" checked> 生成构造方法</label>
+                                    </div>
+                                </div>
+
+                                <!-- SQL选项 -->
+                                <div class="option-section">
+                                    <div class="option-section-title">SQL选项</div>
+                                    <div class="checkbox-group-grid">
+                                        <label><input type="checkbox" id="offsetLimit"> 生成分页查询</label>
+                                        <label><input type="checkbox" id="overrideXML"> 覆盖XML文件</label>
+                                        <label><input type="checkbox" id="needForUpdate"> Select增加FOR UPDATE</label>
+                                        <label><input type="checkbox" id="useTableNameAlias"> 使用表别名</label>
+                                        <label><input type="checkbox" id="useBatchInsert"> 生成批量插入</label>
+                                        <label><input type="checkbox" id="useBatchUpdate"> 生成批量更新</label>
+                                        <label><input type="checkbox" id="ignorePKOnInsert" checked> 插入时忽略主键</label>
+                                    </div>
+                                </div>
+
+                                <!-- 属性选项 -->
+                                <div class="option-section">
+                                    <div class="option-section-title">属性选项</div>
+                                    <div class="checkbox-group-grid">
+                                        <label><input type="checkbox" id="jsr310Support"> 使用JSR310日期类型</label>
+                                        <label><input type="checkbox" id="useActualColumnNames"> 使用实际列名</label>
+                                        <label><input type="checkbox" id="useJsonProperty"> 使用@JsonProperty</label>
+                                        <label id="jsonPropertyOptionsLabel" style="display: none;"><input type="checkbox"
+                                                id="jsonPropertyUpperCase"> 首字母大写</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" id="btnCustomizeColumns" class="btn btn-info">定制列</button>
+                                <button type="button" id="btnGenerate" class="btn btn-success btn-lg">生成代码</button>
+                                <button type="button" id="btnSaveConfig" class="btn btn-secondary">保存配置</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tab2: 自定义片段 -->
+                <div id="tabSnippet" class="tab-panel">
+                    <div class="section">
+                        <h2>自定义 MyBatis 片段</h2>
+
+                        <!-- 多表警告 -->
+                        <div id="snippetMultiTableWarning" class="snippet-warning" style="display:none;">
+                            ⚠️ 自定义片段仅支持单张表，当前已选 <strong id="snippetSelectedCount">0</strong> 张表，请返回左侧取消多余的勾选。
                         </div>
 
-                        <div class="form-actions">
-                            <button type="button" id="btnCustomizeColumns" class="btn btn-info">定制列</button>
-                            <button type="button" id="btnGenerate" class="btn btn-success btn-lg">生成代码</button>
-                            <button type="button" id="btnSaveConfig" class="btn btn-secondary">保存配置</button>
+                        <!-- 未选表提示 -->
+                        <div id="snippetNoTableWarning" class="snippet-warning snippet-warning-info">
+                            📋 请先在左侧勾选一张表，再配置自定义片段。
                         </div>
-                    </form>
+
+                        <!-- 片段配置面板（单表时显示） -->
+                        <div id="snippetPanel" style="display:none;">
+
+                            <!-- 当前表信息 -->
+                            <div class="snippet-table-info">
+                                当前表：<strong id="snippetCurrentTable">-</strong>
+                                &nbsp;|&nbsp; 实体类：<strong id="snippetCurrentModel">-</strong>
+                            </div>
+
+                            <!-- 操作类型 + 批量 + 方法名 -->
+                            <div class="snippet-op-bar">
+                                <div class="form-group" style="flex:1.2;">
+                                    <label>操作类型</label>
+                                    <select id="snippetOperation" class="form-input" onchange="renderSnippetFieldPanel()">
+                                        <option value="select">查询 (SELECT)</option>
+                                        <option value="insert">新增 (INSERT)</option>
+                                        <option value="delete">删除 (DELETE)</option>
+                                        <option value="update">更新 (UPDATE)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="flex:2;">
+                                    <label>方法名 <small style="color:#999;">(留空自动生成，保存片段后显示)</small></label>
+                                    <input type="text" id="snippetMethodName" class="form-input" placeholder="留空自动生成">
+                                </div>
+                                <div class="form-group" style="flex:0 0 auto; align-self:flex-end;">
+                                    <label class="switch-label">
+                                        <input type="checkbox" id="snippetIsBatch" onchange="renderSnippetFieldPanel()">
+                                        <span>批量操作</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 批量提示 -->
+                            <div id="snippetBatchHint" class="snippet-hint" style="display:none;"></div>
+
+                            <!-- 字段配置面板（由 JS 动态渲染：chip 选择器 + QueryBuilder） -->
+                            <div id="snippetFieldPanels"></div>
+
+                            <!-- ★ 添加当前片段 — 突出显示 ★ -->
+                            <div class="snippet-add-area">
+                                <button type="button" id="btnAddSnippet" class="btn-add-snippet" onclick="addSnippet()">
+                                    ＋ 添加当前片段
+                                </button>
+                                <p class="snippet-add-hint">配置好上方字段后点击添加，可添加多个片段</p>
+                            </div>
+
+                            <!-- 已配置片段列表 -->
+                            <div class="snippet-list">
+                                <div class="snippet-list-header">
+                                    <span>📋 已配置片段</span>
+                                    <span id="snippetCount" class="snippet-count-badge">0 个</span>
+                                </div>
+                                <div id="snippetItems" class="snippet-items">
+                                    <div class="snippet-empty">暂未添加任何片段</div>
+                                </div>
+                            </div>
+
+                            <!-- 操作按钮 -->
+                            <div class="form-actions snippet-actions">
+                                <button type="button" id="btnSnippetPreview" class="btn btn-info" onclick="previewSnippet()">
+                                    👁️ 单独显示
+                                </button>
+                                <button type="button" id="btnSnippetMerge" class="btn btn-success btn-lg" onclick="toggleSnippetMerge()">
+                                    🔗 并入生成（未启用）
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="clearSnippets()">清空片段</button>
+                            </div>
+
+                            <div id="snippetMergeHint" class="snippet-hint-success" style="display:none;">
+                                ✅ 已启用"并入生成"——点击 Tab1 的"生成代码"按钮后，自定义片段将自动追加到 Mapper.java 和 Mapper.xml 中。
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>
     </div>
+
 
     <!-- 新建连接对话框 -->
     <div id="connectionModal" class="modal">
@@ -268,6 +369,35 @@
             <div class="modal-footer">
                 <button type="button" id="btnApplyColumns" class="btn btn-primary">应用</button>
                 <button type="button" class="btn btn-secondary" onclick="hideColumnModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 片段预览对话框 -->
+    <div id="snippetPreviewModal" class="modal">
+        <div class="modal-content snippet-preview-modal">
+            <div class="modal-header">
+                <h3>自定义片段预览</h3>
+                <span class="close" onclick="hideSnippetPreviewModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="snippet-preview-section">
+                    <div class="snippet-preview-title">
+                        <span>📄 Mapper 接口方法（追加到 .java 文件）</span>
+                        <button class="btn btn-sm btn-secondary" onclick="copyCode('snippetJavaCode')">复制</button>
+                    </div>
+                    <pre id="snippetJavaCode" class="snippet-code-block"></pre>
+                </div>
+                <div class="snippet-preview-section">
+                    <div class="snippet-preview-title">
+                        <span>📝 XML SQL 片段（追加到 .xml 文件）</span>
+                        <button class="btn btn-sm btn-secondary" onclick="copyCode('snippetXmlCode')">复制</button>
+                    </div>
+                    <pre id="snippetXmlCode" class="snippet-code-block"></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideSnippetPreviewModal()">关闭</button>
             </div>
         </div>
     </div>

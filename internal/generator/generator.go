@@ -405,6 +405,7 @@ type MapperXMLData struct {
 	TableName         string
 	Columns           []*ColumnMapping
 	NonPkColumns      []*ColumnMapping // 非主键列，用于批量操作
+	InsertColumns     []*ColumnMapping // 插入时使用的列
 	PrimaryKey        *ColumnMapping
 	OffsetLimit       bool
 	UseGeneratedKeys  bool
@@ -491,6 +492,12 @@ func (g *Generator) prepareMapperXMLData(columns []*database.TableColumn) *Mappe
 		} else {
 			data.NonPkColumns = append(data.NonPkColumns, mapping)
 		}
+	}
+
+	if data.PrimaryKey != nil && g.config.IgnorePKOnInsert {
+		data.InsertColumns = data.NonPkColumns
+	} else {
+		data.InsertColumns = data.Columns
 	}
 
 	return data

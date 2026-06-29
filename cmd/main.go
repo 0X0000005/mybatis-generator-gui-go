@@ -18,7 +18,7 @@ import (
 	"github.com/yourusername/mybatis-generator-gui-go/internal/web"
 )
 
-const version = "1.6.2"
+const version = "1.7.1"
 
 func main() {
 	// 解析命令行参数
@@ -107,6 +107,9 @@ func main() {
 		// 代码生成
 		apiGroup.POST("/generate", api.GenerateCode)
 		apiGroup.GET("/download/:id", api.DownloadCode)
+
+		// 自定义片段预览
+		apiGroup.POST("/snippet/preview", api.PreviewSnippet)
 
 		// 版本信息
 		apiGroup.GET("/version", func(c *gin.Context) {
