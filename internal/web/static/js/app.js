@@ -1395,7 +1395,7 @@ function renderSnippetList() {
             (s.orderByFields || []).length;
         const badgeBg = opColors[s.operation] || '#667eea';
         return `
-            <div class="snippet-item-wrapper">
+            <div class="snippet-item-wrapper" id="snippet-item-wrapper-${i}">
                 <div class="snippet-item">
                     <span class="snippet-item-badge" style="background:${badgeBg}">${label}</span>
                     <div style="display:flex; flex-direction:column; gap:3px; flex:1; min-width:0;">
@@ -1410,7 +1410,7 @@ function renderSnippetList() {
                         <span class="snippet-item-meta">${fieldCount} 个字段配置</span>
                     </div>
                     <div class="snippet-item-actions">
-                        <button class="btn btn-sm btn-secondary" onclick="showSnippetPreviewModal(${i})" title="单独弹窗预览">👁️ 预览</button>
+                        <button class="btn btn-sm btn-secondary" onclick="toggleSnippetInlinePreview(${i})" title="内联预览">👁️ 预览</button>
                         <button class="btn btn-sm btn-info" onclick="editSnippet(${i})" title="加载到编辑区修改">✏️ 编辑</button>
                         <button class="btn btn-sm btn-danger" onclick="removeSnippet(${i})">🗑️</button>
                     </div>
@@ -1483,6 +1483,62 @@ async function showSnippetPreviewModal(idx) {
 
 function hideSnippetPreviewModal() {
     document.getElementById('snippetPreviewModal').style.display = 'none';
+}
+
+// 单独片段的内联预览
+async function toggleSnippetInlinePreview(idx) {
+    const wrapper = document.getElementById(`snippet-item-wrapper-${idx}`);
+    if (!wrapper) return;
+
+    let inlinePreview = document.getElementById(`inline-preview-${idx}`);
+    if (!inlinePreview) {
+        inlinePreview = document.createElement('div');
+        inlinePreview.id = `inline-preview-${idx}`;
+        inlinePreview.className = 'snippet-inline-preview';
+        wrapper.appendChild(inlinePreview);
+    } else {
+        if (inlinePreview.style.display === 'block') {
+            inlinePreview.style.display = 'none';
+            return;
+        }
+    }
+
+    inlinePreview.innerHTML = '<div style="padding: 10px; color: #666;">⏳ 正在生成预览...</div>';
+    inlinePreview.style.display = 'block';
+
+    try {
+        const snippet = snippetList[idx];
+        const tableName = selectedTables[0] || 'unknown_table';
+        const mapperName = toPascalCase(tableName) + 'Mapper';
+        const modelPackage = document.getElementById('modelPackage').value || 'com.example.model';
+        const modelType = modelPackage + '.' + toPascalCase(tableName);
+
+        const response = await fetch('/api/snippet/preview', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tableName, mapperName, modelType, snippetConfigs: [snippet] })
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+            inlinePreview.innerHTML = `
+                <div class="snippet-preview-section">
+                    <div class="snippet-preview-title">
+                        <span>📄 Java 接口方法</span>
+                    </div>
+                    <pre class="snippet-code-block">${escapeHtml(result.javaCode)}</pre>
+                </div>
+                <div class="snippet-preview-section" style="margin-top: 10px;">
+                    <div class="snippet-preview-title">
+                        <span>📝 XML SQL 片段</span>
+                    </div>
+                    <pre class="snippet-code-block">${escapeHtml(result.xmlCode)}</pre>
+                </div>
+            `;
+        } else {
+            inlinePreview.innerHTML = `<div style="padding: 10px; color: #ef4444;">❌ 预览失败: ${escapeHtml(result.error || '未知错误')}</div>`;
+        }
+    } catch (error) {
+        inlinePreview.innerHTML = `<div style="padding: 10px; color: #ef4444;">❌ 预览失败: ${escapeHtml(error.message)}</div>`;
+    }
 }
 
 async function previewCurrentSnippet() {

@@ -18,7 +18,7 @@ import (
 	"github.com/yourusername/mybatis-generator-gui-go/internal/web"
 )
 
-const version = "1.7.8"
+const version = "1.7.9"
 
 func main() {
 	// 解析命令行参数

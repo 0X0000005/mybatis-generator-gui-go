@@ -1026,6 +1026,7 @@ header h1 {
     font-size: 13px;
     line-height: 1.6;
     overflow-x: auto;
+    overflow-y: auto;
     white-space: pre;
     max-height: 300px;
     overflow-y: auto;
