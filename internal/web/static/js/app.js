@@ -18,13 +18,19 @@ let whereRules = [];            // [{id, fieldIdx, operator}]
 let whereLogic = 'AND';         // AND | OR
 let whereRuleCounter = 0;
 
-// Chip 选择状态
+// Chip / TomSelect 选择状态
 let selectedChips = {
     selectFields: new Set(),
     insertFields: new Set(),
     setFields: new Set(),
 };
 let orderBySelections = new Map(); // colIdx -> direction
+
+// SELECT 字段聚合/别名配置
+let selectFieldConfigs = {};    // colIdx -> { aggregate, alias }
+
+// LIMIT 配置
+let limitConfig = { hasLimit: false, isLimitFixed: false, limitValue: '' };
 
 // ============================================================
 // 工具函数
@@ -584,6 +590,8 @@ function resetSnippetFieldState() {
     whereLogic = 'AND';
     selectedChips = { selectFields: new Set(), insertFields: new Set(), setFields: new Set() };
     orderBySelections = new Map();
+    selectFieldConfigs = {};
+    limitConfig = { hasLimit: false, isLimitFixed: false, limitValue: '' };
 }
 
 // ============================================================
@@ -613,6 +621,7 @@ function renderSnippetFieldPanel() {
         html += buildChipPanel('selectFields', '📤 SELECT 返回字段', '点击字段卡片切换选中状态，已选字段将出现在 SELECT 列表中');
         html += buildQueryBuilderPanel();
         html += buildOrderByChipPanel();
+        html += buildLimitPanel();
     } else if (operation === 'insert') {
         html += buildChipPanel('insertFields', '📥 INSERT 字段', '点击字段卡片切换选中状态，已选字段将出现在 INSERT 语句中');
     } else if (operation === 'delete') {
@@ -623,10 +632,76 @@ function renderSnippetFieldPanel() {
     }
 
     container.innerHTML = html;
+    
+    // 初始化 Tom Select 并恢复状态
+    ['selectFields', 'insertFields', 'setFields'].forEach(panelId => {
+        const selectEl = document.getElementById(panelId + 'Select');
+        if (selectEl) {
+            new TomSelect(selectEl, {
+                plugins: ['remove_button'],
+                placeholder: '点击搜索或选择字段...',
+                onChange: function(values) {
+                    selectedChips[panelId].clear();
+                    if (values) {
+                        (Array.isArray(values) ? values : values.split(',')).forEach(v => {
+                            selectedChips[panelId].add(parseInt(v));
+                        });
+                    }
+                    if (panelId === 'selectFields') {
+                        renderSelectFieldDetails();
+                    }
+                    updateMethodNamePlaceholder();
+                }
+            });
+        }
+    });
+
+    // ORDER BY 单独初始化（使用 orderBySelections Map，不存入 selectedChips）
+    const orderByEl = document.getElementById('orderByFieldsSelect');
+    if (orderByEl) {
+        new TomSelect(orderByEl, {
+            plugins: ['remove_button'],
+            placeholder: '点击搜索或选择排序字段...',
+            onChange: function(values) {
+                // 同步 orderBySelections：保留已有方向，删除取消选中的
+                const newIdxSet = new Set((values ? (Array.isArray(values) ? values : values.split(',')) : []).map(v => parseInt(v)));
+                // 删除取消的
+                Array.from(orderBySelections.keys()).forEach(idx => {
+                    if (!newIdxSet.has(idx)) orderBySelections.delete(idx);
+                });
+                // 新增的默认 ASC
+                newIdxSet.forEach(idx => {
+                    if (!orderBySelections.has(idx)) orderBySelections.set(idx, 'ASC');
+                });
+                renderOrderByFieldDetails();
+                updateMethodNamePlaceholder();
+            }
+        });
+    }
+
     restoreChipStates();
+    renderSelectFieldDetails();
+    renderOrderByFieldDetails();
     renderWhereRules();
     syncCombinatorButtons();
     updateMethodNamePlaceholder();
+}
+
+function restoreChipStates() {
+    // 恢复 selectFields / insertFields / setFields TomSelect
+    ['selectFields', 'insertFields', 'setFields'].forEach(panelId => {
+        const selectEl = document.getElementById(panelId + 'Select');
+        if (selectEl && selectEl.tomselect) {
+            const values = Array.from(selectedChips[panelId]).map(v => v.toString());
+            selectEl.tomselect.setValue(values, true); // silent，不触发 onChange
+        }
+    });
+    // 恢复 orderByFields TomSelect（从 orderBySelections 中读取已选字段索引）
+    const orderByEl = document.getElementById('orderByFieldsSelect');
+    if (orderByEl && orderByEl.tomselect) {
+        const values = Array.from(orderBySelections.keys()).map(v => v.toString());
+        orderByEl.tomselect.setValue(values, true);
+    }
 }
 
 function updateMethodNamePlaceholder() {
@@ -658,44 +733,179 @@ function updateMethodNamePlaceholder() {
 }
 
 // -----------------------------------------------------------------------
-// Chip 选择器
+// Chip 选择器 (用于 TomSelect)
 // -----------------------------------------------------------------------
 function buildChipPanel(panelId, title, hint) {
-    const chips = snippetTableColumns.map((col, idx) => `
-        <div class="field-chip" data-panel="${panelId}" data-col-idx="${idx}" onclick="toggleChip('${panelId}', ${idx})">
-            <span class="chip-col-name">${col.columnName}</span>
-            <span class="chip-col-type">${col.dataType}</span>
-        </div>`).join('');
+    const options = snippetTableColumns.map((col, idx) => {
+        return `<option value="${idx}">${col.columnName} (${col.dataType})</option>`;
+    }).join('');
+    const detailsContainer = panelId === 'selectFields' ? `<div id="selectFieldDetailsList" class="select-details-list"></div>` : '';
     return `
         <div class="snippet-field-panel">
             <div class="snippet-field-panel-title">${title}</div>
             <div class="snippet-field-panel-hint">${hint}</div>
-            <div class="field-chips" id="${panelId}Chips">
-                ${chips || '<div class="snippet-empty">暂无列信息</div>'}
+            <div class="field-select-wrapper" id="${panelId}Wrapper">
+                <select id="${panelId}Select" multiple autocomplete="off">
+                    ${options}
+                </select>
+                ${detailsContainer}
             </div>
         </div>`;
 }
 
+// 渲染 SELECT 字段的详细配置（聚合函数、别名）
+function renderSelectFieldDetails() {
+    const container = document.getElementById('selectFieldDetailsList');
+    if (!container) return;
+    if (selectedChips['selectFields'].size === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    // 初始化尚未配置的字段
+    selectedChips['selectFields'].forEach(idx => {
+        if (!selectFieldConfigs[idx]) {
+            selectFieldConfigs[idx] = { aggregate: '', alias: '' };
+        }
+    });
+    // 清理已移除的字段配置
+    Object.keys(selectFieldConfigs).forEach(idx => {
+        if (!selectedChips['selectFields'].has(parseInt(idx))) {
+            delete selectFieldConfigs[idx];
+        }
+    });
+
+    const aggs = ['COUNT', 'SUM', 'MAX', 'MIN', 'AVG'];
+    const html = Array.from(selectedChips['selectFields']).map(idx => {
+        const col = snippetTableColumns[idx];
+        const cfg = selectFieldConfigs[idx];
+        const aggOptions = `<option value="">无聚合</option>` + aggs.map(a => 
+            `<option value="${a}" ${cfg.aggregate === a ? 'selected' : ''}>${a}()</option>`
+        ).join('');
+        
+        return `
+            <div class="select-detail-row">
+                <span class="select-detail-colname">${col.columnName}</span>
+                <select class="qb-op-select" onchange="updateSelectFieldConfig(${idx}, 'aggregate', this.value)">
+                    ${aggOptions}
+                </select>
+                <input type="text" class="qb-fixed-value-input" placeholder="AS 别名" value="${cfg.alias}"
+                    oninput="updateSelectFieldConfig(${idx}, 'alias', this.value)">
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html;
+}
+
+function updateSelectFieldConfig(idx, key, val) {
+    if (selectFieldConfigs[idx]) {
+        selectFieldConfigs[idx][key] = val;
+    }
+}
+
 function buildOrderByChipPanel() {
-    const chips = snippetTableColumns.map((col, idx) => `
-        <div class="field-chip orderby-chip" data-col-idx="${idx}" onclick="toggleOrderByChip(${idx})">
-            <span class="chip-col-name">${col.columnName}</span>
-            <span class="chip-col-type">${col.dataType}</span>
-            <select class="orderby-dir-select" id="orderby_dir_${idx}"
-                    onclick="event.stopPropagation()" onchange="setOrderByDirection(${idx}, this.value)"
-                    style="display:none;">
-                <option value="ASC">ASC ↑</option>
-                <option value="DESC">DESC ↓</option>
-            </select>
-        </div>`).join('');
+    const panelId = 'orderByFields';
+    const options = snippetTableColumns.map((col, idx) => {
+        return `<option value="${idx}">${col.columnName} (${col.dataType})</option>`;
+    }).join('');
+    
     return `
         <div class="snippet-field-panel">
             <div class="snippet-field-panel-title">🔤 ORDER BY 排序字段</div>
-            <div class="snippet-field-panel-hint">点击字段卡片添加排序，展开后可选择方向</div>
-            <div class="field-chips" id="orderByFieldsChips">
-                ${chips || '<div class="snippet-empty">暂无列信息</div>'}
+            <div class="snippet-field-panel-hint">在下拉框中选择排序字段，选择后可在下方配置排序方向</div>
+            <div class="field-select-wrapper" id="${panelId}Wrapper">
+                <select id="${panelId}Select" multiple autocomplete="off">
+                    ${options}
+                </select>
+                <div id="orderByFieldDetailsList" class="select-details-list"></div>
             </div>
         </div>`;
+}
+
+function renderOrderByFieldDetails() {
+    const container = document.getElementById('orderByFieldDetailsList');
+    if (!container) return;
+    if (orderBySelections.size === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const html = Array.from(orderBySelections.entries()).map(([idx, dir]) => {
+        const col = snippetTableColumns[idx];
+        if (!col) return '';
+        return `
+            <div class="select-detail-row">
+                <span class="select-detail-colname">${col.columnName}</span>
+                <select class="qb-op-select" onchange="orderBySelections.set(${idx}, this.value)">
+                    <option value="ASC" ${dir === 'ASC' ? 'selected' : ''}>ASC ↑</option>
+                    <option value="DESC" ${dir === 'DESC' ? 'selected' : ''}>DESC ↓</option>
+                </select>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = html;
+}
+
+function buildLimitPanel() {
+    const hasLimit = limitConfig.hasLimit;
+    const isFixed = limitConfig.isLimitFixed;
+    const limitValue = limitConfig.limitValue;
+    return `
+        <div class="snippet-field-panel">
+            <div class="snippet-field-panel-title">🔢 LIMIT 限制</div>
+            <div class="snippet-field-panel-hint">配置返回结果集数量限制</div>
+            <div class="select-details-list" style="margin-top: 8px;">
+                <div class="select-detail-row">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; min-width:100px;">
+                        <input type="checkbox" id="limitHasLimit" ${hasLimit ? 'checked' : ''} onchange="toggleLimitPanel()">
+                        <span class="select-detail-colname">启用 LIMIT</span>
+                    </label>
+                    <div id="limitConfigArea" style="display:${hasLimit ? 'flex' : 'none'}; align-items:center; gap:8px; flex:1;">
+                        <select class="qb-op-select" id="limitModeSelect" onchange="toggleLimitModeSelect()">
+                            <option value="fixed" ${isFixed ? 'selected' : ''}>固定值 (Fixed)</option>
+                            <option value="var" ${!isFixed ? 'selected' : ''}>变量 (Variable)</option>
+                        </select>
+                        <input type="text" id="limitValueInput" class="qb-fixed-value-input" style="flex:1;"
+                            value="${limitValue}" placeholder="${isFixed ? '例如: 10 或 0, 10' : '参数名, 如: limit'}"
+                            oninput="updateLimitValue(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function toggleLimitModeSelect() {
+    const select = document.getElementById('limitModeSelect');
+    if (!select) return;
+    limitConfig.isLimitFixed = select.value === 'fixed';
+    
+    const input = document.getElementById('limitValueInput');
+    if (input) {
+        input.placeholder = limitConfig.isLimitFixed ? '例如: 10 或 0, 10' : '参数名, 如: limit';
+    }
+}
+
+function toggleLimitPanel() {
+    const el = document.getElementById('limitHasLimit');
+    if (el) limitConfig.hasLimit = el.checked;
+    const area = document.getElementById('limitConfigArea');
+    if (area) area.style.display = limitConfig.hasLimit ? 'flex' : 'none';
+}
+
+function toggleLimitMode() {
+    // 兼容遗留的 toggleLimitMode
+    limitConfig.isLimitFixed = !limitConfig.isLimitFixed;
+    const select = document.getElementById('limitModeSelect');
+    if (select) select.value = limitConfig.isLimitFixed ? 'fixed' : 'var';
+    const input = document.getElementById('limitValueInput');
+    if (input) input.placeholder = limitConfig.isLimitFixed ? '例如: 10 或 0, 10' : '参数名, 如: limit';
+}
+
+function updateLimitValue(val) {
+    limitConfig.limitValue = val;
 }
 
 function toggleChip(panelId, colIdx) {
@@ -709,73 +919,35 @@ function toggleChip(panelId, colIdx) {
     updateMethodNamePlaceholder();
 }
 
-function toggleOrderByChip(colIdx) {
-    const chip = document.querySelector(`#orderByFieldsChips .field-chip[data-col-idx="${colIdx}"]`);
-    const dirSelect = document.getElementById('orderby_dir_' + colIdx);
-    if (orderBySelections.has(colIdx)) {
-        orderBySelections.delete(colIdx);
-        if (chip) chip.classList.remove('selected');
-        if (dirSelect) dirSelect.style.display = 'none';
-    } else {
-        orderBySelections.set(colIdx, 'ASC');
-        if (chip) chip.classList.add('selected');
-        if (dirSelect) { dirSelect.value = 'ASC'; dirSelect.style.display = ''; }
-    }
-    updateMethodNamePlaceholder();
-}
-
 function setOrderByDirection(colIdx, direction) {
     if (orderBySelections.has(colIdx)) orderBySelections.set(colIdx, direction);
 }
-
-function restoreChipStates() {
-    ['selectFields', 'insertFields', 'setFields'].forEach(panelId => {
-        const container = document.getElementById(panelId + 'Chips');
-        if (!container) return;
-        selectedChips[panelId].forEach(colIdx => {
-            const chip = container.querySelector(`.field-chip[data-col-idx="${colIdx}"]`);
-            if (chip) chip.classList.add('selected');
-        });
-    });
-    const obContainer = document.getElementById('orderByFieldsChips');
-    if (obContainer) {
-        orderBySelections.forEach((direction, colIdx) => {
-            const chip = obContainer.querySelector(`.field-chip[data-col-idx="${colIdx}"]`);
-            if (chip) chip.classList.add('selected');
-            const dirSelect = document.getElementById('orderby_dir_' + colIdx);
-            if (dirSelect) { dirSelect.value = direction; dirSelect.style.display = ''; }
-        });
-    }
-}
-
 function collectChipFields(panelId) {
-    const container = document.getElementById(panelId + 'Chips');
-    if (!container) return [];
     const result = [];
-    container.querySelectorAll('.field-chip.selected').forEach(chip => {
-        const colIdx = parseInt(chip.dataset.colIdx);
+    selectedChips[panelId].forEach(colIdx => {
         const col = snippetTableColumns[colIdx];
         if (col) {
             const override = columnOverrides.find(o => o.columnName === col.columnName) || {};
-            result.push({
+            const fieldObj = {
                 columnName: col.columnName,
                 fieldName: override.propertyName || col.fieldName || snakeToCamel(col.columnName),
                 jdbcType: override.jdbcType || col.jdbcType || col.dataType.toUpperCase(),
                 javaType: override.javaType || col.javaType || 'Object'
-            });
+            };
+            if (panelId === 'selectFields' && selectFieldConfigs[colIdx]) {
+                fieldObj.aggregate = selectFieldConfigs[colIdx].aggregate;
+                fieldObj.alias = selectFieldConfigs[colIdx].alias;
+            }
+            result.push(fieldObj);
         }
     });
     return result;
 }
 
 function collectOrderByFields() {
-    const container = document.getElementById('orderByFieldsChips');
-    if (!container) return [];
     const result = [];
-    container.querySelectorAll('.field-chip.selected').forEach(chip => {
-        const colIdx = parseInt(chip.dataset.colIdx);
+    orderBySelections.forEach((direction, colIdx) => {
         const col = snippetTableColumns[colIdx];
-        const direction = orderBySelections.get(colIdx) || 'ASC';
         if (col) {
             const override = columnOverrides.find(o => o.columnName === col.columnName) || {};
             result.push({
@@ -826,7 +998,7 @@ function buildQueryBuilderPanel() {
 
 function addWhereRule() {
     const id = whereRuleCounter++;
-    whereRules.push({ id, fieldIdx: 0, operator: '=' });
+    whereRules.push({ id, fieldIdx: 0, operator: '=', isFixed: false, fixedValue: '' });
     renderWhereRules();
     updateMethodNamePlaceholder();
 }
@@ -841,6 +1013,8 @@ function updateWhereRule(id, key, rawValue) {
     const rule = whereRules.find(r => r.id === id);
     if (rule) rule[key] = key === 'fieldIdx' ? parseInt(rawValue) : rawValue;
     updateMethodNamePlaceholder();
+    // 实时更新冲突检测
+    renderWhereRules();
 }
 
 function setWhereLogic(logic) {
@@ -860,6 +1034,89 @@ function syncCombinatorButtons() {
     if (group) group.classList.toggle('qb-group-or', whereLogic === 'OR');
 }
 
+// -----------------------------------------------------------------------
+// WHERE 条件冲突检测规则
+// -----------------------------------------------------------------------
+// 返回当前冲突的 rule id Set
+function validateWhereRules() {
+    const conflictIds = new Set();
+    // 按字段分组
+    const byField = {};
+    whereRules.forEach(r => {
+        const key = r.fieldIdx;
+        if (!byField[key]) byField[key] = [];
+        byField[key].push(r);
+    });
+    Object.values(byField).forEach(rules => {
+        if (rules.length < 2) return;
+        // 互斥单例运算符：同字段只能出现一次
+        const singleOnlyOps = ['=', '!=', 'LIKE', 'IN', 'NOT IN', 'IS NULL', 'IS NOT NULL'];
+        singleOnlyOps.forEach(op => {
+            const matched = rules.filter(r => r.operator === op);
+            if (matched.length > 1) matched.forEach(r => conflictIds.add(r.id));
+        });
+        // IS NULL 与 IS NOT NULL 互斥
+        const hasNull = rules.some(r => r.operator === 'IS NULL');
+        const hasNotNull = rules.some(r => r.operator === 'IS NOT NULL');
+        if (hasNull && hasNotNull) {
+            rules.filter(r => r.operator === 'IS NULL' || r.operator === 'IS NOT NULL')
+                 .forEach(r => conflictIds.add(r.id));
+        }
+        // IN 与 NOT IN 互斥
+        const hasIn = rules.some(r => r.operator === 'IN');
+        const hasNotIn = rules.some(r => r.operator === 'NOT IN');
+        if (hasIn && hasNotIn) {
+            rules.filter(r => r.operator === 'IN' || r.operator === 'NOT IN')
+                 .forEach(r => conflictIds.add(r.id));
+        }
+        // 范围运算符重复警告：> 和 >= 同字段出现
+        const hasGt = rules.some(r => r.operator === '>');
+        const hasGte = rules.some(r => r.operator === '>=');
+        if (hasGt && hasGte) {
+            rules.filter(r => r.operator === '>' || r.operator === '>=')
+                 .forEach(r => conflictIds.add(r.id));
+        }
+        const hasLt = rules.some(r => r.operator === '<');
+        const hasLte = rules.some(r => r.operator === '<=');
+        if (hasLt && hasLte) {
+            rules.filter(r => r.operator === '<' || r.operator === '<=')
+                 .forEach(r => conflictIds.add(r.id));
+        }
+    });
+    return conflictIds;
+}
+
+function getInputHtmlForDataType(rule, col) {
+    const isListOp = rule.operator === 'IN' || rule.operator === 'NOT IN';
+    if (isListOp) {
+        return `<input type="text" class="qb-fixed-value-input" value="${rule.fixedValue || ''}"
+            placeholder="输入逗号分隔的多个值"
+            oninput="updateWhereRule(${rule.id}, 'fixedValue', this.value)">`;
+    }
+
+    const dt = (col.dataType || '').toLowerCase();
+    let type = 'text';
+    if (dt.includes('int') || dt.includes('decimal') || dt.includes('numeric') || dt.includes('float') || dt.includes('double')) {
+        type = 'number';
+    } else if (dt.includes('datetime') || dt.includes('timestamp')) {
+        type = 'datetime-local';
+    } else if (dt === 'date') {
+        type = 'date';
+    } else if (dt.includes('time')) {
+        type = 'time';
+    } else if (dt.includes('bool') || dt.includes('bit') || dt === 'tinyint(1)') {
+        const val = rule.fixedValue || '1';
+        return `<select class="qb-fixed-value-input" onchange="updateWhereRule(${rule.id}, 'fixedValue', this.value)">
+            <option value="1" ${val === '1' || val === 'true' ? 'selected' : ''}>True (1)</option>
+            <option value="0" ${val === '0' || val === 'false' ? 'selected' : ''}>False (0)</option>
+        </select>`;
+    }
+    
+    return `<input type="${type}" class="qb-fixed-value-input" value="${rule.fixedValue || ''}"
+                placeholder="输入固定值"
+                oninput="updateWhereRule(${rule.id}, 'fixedValue', this.value)">`;
+}
+
 function renderWhereRules() {
     const container = document.getElementById('whereRulesList');
     if (!container) return;
@@ -867,6 +1124,7 @@ function renderWhereRules() {
         container.innerHTML = '<div class="qb-empty">暂无条件，点击上方"添加条件"按钮</div>';
         return;
     }
+    const conflictIds = validateWhereRules();
     const isOr = whereLogic === 'OR';
     const badgeClass = isOr ? 'or-badge' : '';
     const badgeText = isOr ? 'OR' : 'AND';
@@ -874,9 +1132,22 @@ function renderWhereRules() {
         const fieldOptions = snippetTableColumns.map((col, i) =>
             `<option value="${i}" ${rule.fieldIdx === i ? 'selected' : ''}>${col.columnName}  (${col.dataType})</option>`
         ).join('');
+        // IS NULL/NOT NULL 不需要固定值切换
+        const noValueOps = ['IS NULL', 'IS NOT NULL'];
+        const showValueToggle = !noValueOps.includes(rule.operator);
+        const isFixed = !!rule.isFixed;
+        const currentColumn = snippetTableColumns[rule.fieldIdx] || {};
+        const fixedValInput = (isFixed && showValueToggle)
+            ? getInputHtmlForDataType(rule, currentColumn) : '';
+        const toggleBtn = showValueToggle
+            ? `<button class="qb-mode-toggle ${isFixed ? 'fixed' : 'var'}" title="切换变量/固定值模式"
+                onclick="updateWhereRule(${rule.id}, 'isFixed', !${isFixed}); renderWhereRules();">${isFixed ? '🔒 固定值' : '🔑 变量'}</button>` : '';
         const opOptions = QB_OPERATORS.map(op =>
             `<option value="${op}" ${rule.operator === op ? 'selected' : ''}>${QB_OP_LABELS[op] || op}</option>`
         ).join('');
+        const hasConflict = conflictIds.has(rule.id);
+        const conflictTip = hasConflict
+            ? `<span class="qb-conflict-icon" title="冲突：同字段已存在互斥的运算符，请删除重复条件">⚠️</span>` : '';
         const connector = idx > 0 ? `
             <div class="qb-rule-connector">
                 <div class="qb-connector-line"></div>
@@ -884,7 +1155,7 @@ function renderWhereRules() {
                 <div class="qb-connector-line"></div>
             </div>` : '';
         return `${connector}
-            <div class="qb-rule" data-rule-id="${rule.id}">
+            <div class="qb-rule ${hasConflict ? 'qb-rule-conflict' : ''}" data-rule-id="${rule.id}">
                 <span class="qb-rule-number">${idx + 1}.</span>
                 <select class="qb-field-select" onchange="updateWhereRule(${rule.id}, 'fieldIdx', this.value)">
                     ${fieldOptions}
@@ -892,6 +1163,9 @@ function renderWhereRules() {
                 <select class="qb-op-select" onchange="updateWhereRule(${rule.id}, 'operator', this.value)">
                     ${opOptions}
                 </select>
+                ${toggleBtn}
+                ${fixedValInput}
+                ${conflictTip}
                 <button class="qb-remove-btn" onclick="removeWhereRule(${rule.id})" title="删除此条件">✕</button>
             </div>`;
     });
@@ -908,7 +1182,9 @@ function collectWhereConditions() {
             fieldName: override.propertyName || col.fieldName || snakeToCamel(col.columnName),
             jdbcType: override.jdbcType || col.jdbcType || col.dataType.toUpperCase(),
             javaType: override.javaType || col.javaType || 'Object',
-            operator: rule.operator || '='
+            operator: rule.operator || '=',
+            isFixed: !!rule.isFixed,
+            fixedValue: rule.fixedValue || ''
         };
     }).filter(Boolean);
 }
@@ -930,6 +1206,9 @@ function buildCurrentSnippetConfig() {
         cfg.selectFields = collectChipFields('selectFields');
         cfg.whereFields = whereConditions;
         cfg.orderByFields = collectOrderByFields();
+        cfg.hasLimit = limitConfig.hasLimit;
+        cfg.isLimitFixed = limitConfig.isLimitFixed;
+        cfg.limitValue = limitConfig.limitValue;
     } else if (operation === 'insert') {
         cfg.insertFields = collectChipFields('insertFields');
     } else if (operation === 'delete') {
@@ -943,23 +1222,35 @@ function buildCurrentSnippetConfig() {
 
 function addSnippet() {
     const cfg = buildCurrentSnippetConfig();
-    // 校验
+    // 校验是否有字段
     const hasFields =
         cfg.selectFields.length > 0 || cfg.whereFields.length > 0 ||
         cfg.insertFields.length > 0 || cfg.setFields.length > 0 || cfg.orderByFields.length > 0;
     if (!hasFields) { showMessage('请至少配置一个字段或条件', 'error'); return; }
-    
+
+    // 冲突检测：有未解决的 WHERE 冲突则不允许添加
+    const conflictIds = validateWhereRules();
+    if (conflictIds.size > 0) {
+        showMessage('存在 WHERE 条件冲突（请检查警告标识的条件），请先解决再添加', 'error');
+        return;
+    }
+
     if (!cfg.methodName) {
         cfg.methodName = computeMethodName(cfg);
     }
-    
-    // Check for duplicate method names
-    const duplicateIdx = snippetList.findIndex((s, idx) => s.methodName === cfg.methodName && idx !== editingSnippetIndex);
-    if (duplicateIdx !== -1) {
-        showMessage(`方法名 '${cfg.methodName}' 已存在，请手动修改以避免冲突！`, 'error');
-        return;
+
+    // 方法名重复处理：自动追加序号（需求 #1）
+    const baseName = cfg.methodName;
+    let finalName = baseName;
+    let suffix = 2;
+    while (snippetList.some((s, idx) => s.methodName === finalName && idx !== editingSnippetIndex)) {
+        finalName = `${baseName}_${suffix++}`;
     }
-    
+    if (finalName !== baseName) {
+        showMessage(`方法名重复，已自动重命名为 ${finalName}`, 'info');
+    }
+    cfg.methodName = finalName;
+
     if (editingSnippetIndex !== null) {
         snippetList[editingSnippetIndex] = cfg;
         showMessage('片段已保存修改', 'success');
@@ -1058,6 +1349,19 @@ function loadSnippetIntoForm(cfg) {
         const colIdx = snippetTableColumns.findIndex(c => c.columnName === f.columnName);
         if (colIdx >= 0) orderBySelections.set(colIdx, f.direction || 'ASC');
     });
+    // 恢复 SELECT 的聚合和别名
+    (cfg.selectFields || []).forEach(f => {
+        const colIdx = snippetTableColumns.findIndex(c => c.columnName === f.columnName);
+        if (colIdx >= 0 && (f.aggregate || f.alias)) {
+            selectFieldConfigs[colIdx] = { aggregate: f.aggregate || '', alias: f.alias || '' };
+        }
+    });
+    // 恢复 LIMIT
+    if (cfg.operation === 'select') {
+        limitConfig.hasLimit = !!cfg.hasLimit;
+        limitConfig.isLimitFixed = !!cfg.isLimitFixed;
+        limitConfig.limitValue = cfg.limitValue || '';
+    }
     renderSnippetFieldPanel();
 }
 
@@ -1083,26 +1387,30 @@ function renderSnippetList() {
             (s.orderByFields || []).length;
         const badgeBg = opColors[s.operation] || '#667eea';
         return `
-            <div class="snippet-item">
-                <span class="snippet-item-badge" style="background:${badgeBg}">${label}</span>
-                <div style="display:flex; flex-direction:column; gap:3px; flex:1; min-width:0;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="text" class="snippet-item-method-input"
-                            value="${displayName}"
-                            onchange="updateSnippetMethodName(${i}, this.value)"
-                            placeholder="方法名"
-                            title="点击可修改方法名">
-                        ${isAutoName ? '<span class="snippet-auto-label">🧠 自动生成</span>' : ''}
+            <div class="snippet-item-wrapper">
+                <div class="snippet-item">
+                    <span class="snippet-item-badge" style="background:${badgeBg}">${label}</span>
+                    <div style="display:flex; flex-direction:column; gap:3px; flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="text" class="snippet-item-method-input"
+                                value="${displayName}"
+                                onchange="updateSnippetMethodName(${i}, this.value)"
+                                placeholder="方法名"
+                                title="点击可修改方法名">
+                            ${isAutoName ? '<span class="snippet-auto-label">🧠 自动生成</span>' : ''}
+                        </div>
+                        <span class="snippet-item-meta">${fieldCount} 个字段配置</span>
                     </div>
-                    <span class="snippet-item-meta">${fieldCount} 个字段配置</span>
-                </div>
-                <div class="snippet-item-actions">
-                    <button class="btn btn-sm btn-info" onclick="editSnippet(${i})" title="加载到编辑区修改">✏️ 编辑</button>
-                    <button class="btn btn-sm btn-danger" onclick="removeSnippet(${i})">🗑️</button>
+                    <div class="snippet-item-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="showSnippetPreviewModal(${i})" title="单独弹窗预览">👁️ 预览</button>
+                        <button class="btn btn-sm btn-info" onclick="editSnippet(${i})" title="加载到编辑区修改">✏️ 编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="removeSnippet(${i})">🗑️</button>
+                    </div>
                 </div>
             </div>`;
     }).join('');
 }
+
 
 
 function removeSnippet(idx) {
@@ -1139,18 +1447,18 @@ function toggleSnippetMerge() {
     }
 }
 
-async function previewSnippet() {
-    if (snippetList.length === 0) { showMessage('请先添加至少一个自定义片段', 'error'); return; }
+async function showSnippetPreviewModal(idx) {
     if (selectedTables.length !== 1) { showMessage('请先选择一张表', 'error'); return; }
     const tableName = selectedTables[0];
     const mapperName = toPascalCase(tableName) + 'Mapper';
     const modelPackage = document.getElementById('modelPackage').value || 'com.example.model';
     const modelType = modelPackage + '.' + toPascalCase(tableName);
+    
+    showMessage('正在生成预览...', 'info');
     try {
-        showMessage('正在生成预览...', 'info');
         const response = await fetch('/api/snippet/preview', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tableName, mapperName, modelType, snippetConfigs: snippetList })
+            body: JSON.stringify({ tableName, mapperName, modelType, snippetConfigs: [snippetList[idx]] })
         });
         const result = await response.json();
         if (response.ok && result.success) {
@@ -1167,6 +1475,102 @@ async function previewSnippet() {
 
 function hideSnippetPreviewModal() {
     document.getElementById('snippetPreviewModal').style.display = 'none';
+}
+
+async function previewCurrentSnippet() {
+    if (selectedTables.length !== 1) { showMessage('请先选择一张表', 'error'); return; }
+    const tableName = selectedTables[0];
+    const mapperName = toPascalCase(tableName) + 'Mapper';
+    const modelPackage = document.getElementById('modelPackage').value || 'com.example.model';
+    const modelType = modelPackage + '.' + toPascalCase(tableName);
+    
+    const currentCfg = buildCurrentSnippetConfig();
+    const hasFields =
+        currentCfg.selectFields.length > 0 || currentCfg.whereFields.length > 0 ||
+        currentCfg.insertFields.length > 0 || currentCfg.setFields.length > 0 || currentCfg.orderByFields.length > 0;
+    if (!hasFields) { showMessage('请至少配置一个字段或条件', 'error'); return; }
+    
+    // 如果没有输入方法名，临时生成一个
+    if (!currentCfg.methodName) {
+        currentCfg.methodName = computeMethodName(currentCfg);
+    }
+    
+    showMessage('正在生成预览...', 'info');
+    try {
+        const response = await fetch('/api/snippet/preview', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tableName, mapperName, modelType, snippetConfigs: [currentCfg] })
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+            document.getElementById('snippetJavaCode').textContent = result.javaCode;
+            document.getElementById('snippetXmlCode').textContent = result.xmlCode;
+            document.getElementById('snippetPreviewModal').style.display = 'block';
+        } else {
+            showMessage('预览失败: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showMessage('预览失败: ' + error.message, 'error');
+    }
+}
+
+async function previewSnippet() {
+    if (snippetList.length === 0) { showMessage('请先添加至少一个自定义片段', 'error'); return; }
+    if (selectedTables.length !== 1) { showMessage('请先选择一张表', 'error'); return; }
+    const tableName = selectedTables[0];
+    const mapperName = toPascalCase(tableName) + 'Mapper';
+    const modelPackage = document.getElementById('modelPackage').value || 'com.example.model';
+    const modelType = modelPackage + '.' + toPascalCase(tableName);
+    
+    let globalPreview = document.getElementById('globalSnippetPreview');
+    if (!globalPreview) {
+        // 创建全局预览容器，追加到 snippetPanel 底部
+        globalPreview = document.createElement('div');
+        globalPreview.id = 'globalSnippetPreview';
+        globalPreview.className = 'snippet-inline-preview';
+        globalPreview.style.marginTop = '15px';
+        const actionsDiv = document.querySelector('.snippet-actions');
+        actionsDiv.parentNode.insertBefore(globalPreview, actionsDiv.nextSibling);
+    }
+    
+    // Toggle behavior
+    if (globalPreview.style.display === 'block') {
+        globalPreview.style.display = 'none';
+        return;
+    }
+    
+    globalPreview.innerHTML = '<div style="padding: 10px; color: #666;">⏳ 正在生成全局预览...</div>';
+    globalPreview.style.display = 'block';
+
+    try {
+        const response = await fetch('/api/snippet/preview', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tableName, mapperName, modelType, snippetConfigs: snippetList })
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+            globalPreview.innerHTML = `
+                <div class="snippet-preview-section">
+                    <div class="snippet-preview-title">
+                        <span>📄 全局 Mapper 接口方法</span>
+                    </div>
+                    <pre class="snippet-code-block">${escapeHtml(result.javaCode)}</pre>
+                </div>
+                <div class="snippet-preview-section" style="margin-top: 10px;">
+                    <div class="snippet-preview-title">
+                        <span>📝 全局 XML SQL 片段</span>
+                    </div>
+                    <pre class="snippet-code-block">${escapeHtml(result.xmlCode)}</pre>
+                </div>
+            `;
+            // Scroll to preview
+            globalPreview.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        } else {
+            globalPreview.innerHTML = `<div style="padding: 10px; color: #ef4444;">❌ 预览失败: ${escapeHtml(result.error || '未知错误')}</div>`;
+        }
+    } catch (error) {
+        globalPreview.innerHTML = `<div style="padding: 10px; color: #ef4444;">❌ 预览失败: ${escapeHtml(error.message)}</div>`;
+    }
 }
 
 // ============================================================

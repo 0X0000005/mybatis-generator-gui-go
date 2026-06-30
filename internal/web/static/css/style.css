@@ -1371,3 +1371,114 @@ header h1 {
     border: 1.5px dashed #e0e7ff;
     border-radius: 6px;
 }
+
+/* WHERE 条件冲突样式 */
+.qb-rule-conflict {
+    border-color: #fca5a5 !important;
+    background: #fff5f5 !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12) !important;
+}
+
+.qb-conflict-icon {
+    font-size: 15px;
+    cursor: help;
+    flex-shrink: 0;
+    animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+}
+
+/* WHERE 固定值/变量切换模式样式 */
+.qb-mode-toggle {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    color: #475569;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.qb-mode-toggle:hover {
+    background: #e2e8f0;
+}
+.qb-mode-toggle.fixed {
+    background: #e0e7ff;
+    border-color: #a5b4fc;
+    color: #4338ca;
+}
+
+.qb-fixed-value-input {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+    width: 140px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.qb-fixed-value-input:focus {
+    border-color: #6366f1;
+}
+
+/* 内联预览样式 */
+.snippet-inline-preview {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 8px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+.snippet-item-wrapper {
+    margin-bottom: 10px;
+}
+
+/* OrderBy 角标样式 */
+.orderby-badge {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    z-index: 2;
+}
+.field-chip.orderby-chip {
+    position: relative;
+}
+
+/* Select Detail Row */
+.select-details-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.select-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+.select-detail-colname {
+    font-weight: 500;
+    color: #475569;
+    min-width: 120px;
+}

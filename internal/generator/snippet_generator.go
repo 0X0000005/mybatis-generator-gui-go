@@ -81,14 +81,15 @@ func generateSelectSnippet(cfg *config.SnippetConfig, mapperName, modelType, tab
 			simpleModel, methodName, inField.JavaType,
 		))
 	} else {
-		params := buildJavaParams(cfg.WhereFields)
+		params := buildJavaParams(cfg)
 		javaBuilder.WriteString(fmt.Sprintf(
 			"    java.util.List<%s> %s(%s);\n",
 			simpleModel, methodName, params,
 		))
 	}
 
-	// 预计算 WHERE SQL 和 ORDER BY SQL（传给模板，避免模板内逻辑过复杂）
+	// 预计算 SQL 片段
+	selectSQL := buildSelectSQL(cfg.SelectFields)
 	whereSQL := buildWhereSQL(cfg.WhereFields, cfg.WhereLogic)
 	orderBySQL := buildOrderBySQL(cfg.OrderByFields)
 
@@ -97,11 +98,14 @@ func generateSelectSnippet(cfg *config.SnippetConfig, mapperName, modelType, tab
 		"MethodName":   methodName,
 		"ModelType":    modelType,
 		"TableName":    tableName,
-		"SelectFields": cfg.SelectFields,
+		"SelectSQL":    selectSQL,
 		"WhereSQL":     whereSQL,
 		"OrderBySQL":   orderBySQL,
 		"IsBatch":      cfg.IsBatch,
 		"InField":      firstWhereField(cfg.WhereFields),
+		"HasLimit":     cfg.HasLimit,
+		"IsLimitFixed": cfg.IsLimitFixed,
+		"LimitValue":   cfg.LimitValue,
 	})
 	if err != nil {
 		return nil, err
@@ -183,7 +187,7 @@ func generateDeleteSnippet(cfg *config.SnippetConfig, mapperName, modelType, tab
 			methodName, inField.JavaType,
 		))
 	} else {
-		params := buildJavaParams(cfg.WhereFields)
+		params := buildJavaParams(cfg)
 		javaBuilder.WriteString(fmt.Sprintf("    int %s(%s);\n", methodName, params))
 	}
 
@@ -300,18 +304,51 @@ func buildWhereClause(f config.SnippetField, batchMode bool) string {
 	case "IS NOT NULL":
 		return f.ColumnName + " IS NOT NULL"
 	case "LIKE":
+		if f.IsFixed {
+			return fmt.Sprintf("%s LIKE '%s'", f.ColumnName, f.FixedValue)
+		}
 		return fmt.Sprintf("%s LIKE CONCAT('%%', #{%s%s,jdbcType=%s}, '%%')",
 			f.ColumnName, prefix, f.FieldName, f.JdbcType)
 	case "IN", "NOT IN":
+		if f.IsFixed {
+			return fmt.Sprintf("%s %s (%s)", f.ColumnName, op, f.FixedValue)
+		}
 		return fmt.Sprintf("%s %s\n        <foreach collection=\"%s\" item=\"item\" open=\"(\" separator=\",\" close=\")\">\n            #{item,jdbcType=%s}\n        </foreach>",
 			f.ColumnName, op, f.FieldName, f.JdbcType)
 	default:
+		if f.IsFixed {
+			// 固定值直接内嵌，字符串类型需加引号
+			val := f.FixedValue
+			if f.JdbcType == "VARCHAR" || f.JdbcType == "CHAR" || f.JdbcType == "TEXT" {
+				val = "'" + val + "'"
+			}
+			return fmt.Sprintf("%s %s %s", f.ColumnName, op, val)
+		}
 		return fmt.Sprintf("%s %s #{%s%s,jdbcType=%s}",
 			f.ColumnName, op, prefix, f.FieldName, f.JdbcType)
 	}
 }
 
-// buildOrderBySQL 生成 ORDER BY 子句（含 ORDER BY 关键字）
+// buildSelectSQL 构建 SELECT 字段部分（处理聚合函数和别名）
+func buildSelectSQL(fields []config.SnippetField) string {
+	if len(fields) == 0 {
+		return "*"
+	}
+	parts := make([]string, len(fields))
+	for i, f := range fields {
+		fieldSQL := f.ColumnName
+		if f.Aggregate != "" {
+			fieldSQL = fmt.Sprintf("%s(%s)", strings.ToUpper(f.Aggregate), fieldSQL)
+		}
+		if f.Alias != "" {
+			fieldSQL = fmt.Sprintf("%s AS %s", fieldSQL, f.Alias)
+		}
+		parts[i] = fieldSQL
+	}
+	return strings.Join(parts, ", ")
+}
+
+// buildOrderBySQL 构建 ORDER BY 语句（含 ORDER BY 关键字）
 func buildOrderBySQL(fields []config.OrderByField) string {
 	if len(fields) == 0 {
 		return ""
@@ -429,13 +466,34 @@ func effectiveWhereFields(fields []config.SnippetField) []config.SnippetField {
 // 辅助函数
 // -----------------------------------------------------------------------
 
-func buildJavaParams(fields []config.SnippetField) string {
+func buildJavaParams(cfg *config.SnippetConfig) string {
 	// 过滤掉 IS NULL / IS NOT NULL（无需Java参数）
-	effective := effectiveWhereFields(fields)
-	if len(effective) == 0 {
-		return ""
+	effective := effectiveWhereFields(cfg.WhereFields)
+	var parts []string
+	
+	// 处理 Limit 参数
+	if cfg.Operation == "select" && cfg.HasLimit && !cfg.IsLimitFixed {
+		limitName := cfg.LimitValue
+		if limitName == "" {
+			limitName = "limit"
+		}
+		// 如果用户输入了 "offset, limit" 等多个参数，简单处理：只声明一个参数，或者让用户自己确保类型
+		// 为了简单起见，这里假设就一个 Integer 参数
+		parts = append(parts, fmt.Sprintf("@org.apache.ibatis.annotations.Param(\"%s\") Integer %s", limitName, limitName))
 	}
-	if len(effective) == 1 {
+
+	for _, f := range effective {
+		javaType := f.JavaType
+		if f.Operator == "IN" || f.Operator == "NOT IN" {
+			javaType = "java.util.List<" + f.JavaType + ">"
+		}
+		parts = append(parts, fmt.Sprintf("@org.apache.ibatis.annotations.Param(\"%s\") %s %s",
+			f.FieldName, javaType, f.FieldName))
+	}
+	
+	// 如果只有一个 Where 条件且没有 Limit，不使用 @Param 也是可以的，但统一加上 @Param 更好兼容。
+	// 但为了保持原有逻辑向后兼容：
+	if len(effective) == 1 && len(parts) == 1 {
 		f := effective[0]
 		javaType := f.JavaType
 		if f.Operator == "IN" || f.Operator == "NOT IN" {
@@ -443,15 +501,7 @@ func buildJavaParams(fields []config.SnippetField) string {
 		}
 		return fmt.Sprintf("%s %s", javaType, f.FieldName)
 	}
-	parts := make([]string, len(effective))
-	for i, f := range effective {
-		javaType := f.JavaType
-		if f.Operator == "IN" || f.Operator == "NOT IN" {
-			javaType = "java.util.List<" + f.JavaType + ">"
-		}
-		parts[i] = fmt.Sprintf("@org.apache.ibatis.annotations.Param(\"%s\") %s %s",
-			f.FieldName, javaType, f.FieldName)
-	}
+
 	return strings.Join(parts, ", ")
 }
 
@@ -488,7 +538,7 @@ func renderTemplate(name, tmplStr string, data interface{}) (string, error) {
 
 const selectSnippetTemplate = `    <!-- 自定义查询 - {{.MethodName}} -->
     <select id="{{.MethodName}}" resultType="{{.ModelType}}">
-        SELECT {{if .SelectFields}}{{range $i, $f := .SelectFields}}{{if $i}}, {{end}}{{$f.ColumnName}}{{end}}{{else}}*{{end}}
+        SELECT {{.SelectSQL}}
         FROM {{.TableName}}
 {{- if .IsBatch}}
         WHERE {{.InField.ColumnName}} IN
@@ -500,6 +550,13 @@ const selectSnippetTemplate = `    <!-- 自定义查询 - {{.MethodName}} -->
 {{- end}}
 {{- if .OrderBySQL}}
         {{.OrderBySQL}}
+{{- end}}
+{{- if .HasLimit}}
+    {{- if .IsLimitFixed}}
+        LIMIT {{if .LimitValue}}{{.LimitValue}}{{else}}10{{end}}
+    {{- else}}
+        LIMIT #{{print "{"}}{{if .LimitValue}}{{.LimitValue}}{{else}}limit{{end}}{{print "}"}}
+    {{- end}}
 {{- end}}
     </select>`
 
