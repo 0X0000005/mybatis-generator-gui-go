@@ -30,7 +30,7 @@ let orderBySelections = new Map(); // colIdx -> direction
 let selectFieldConfigs = {};    // colIdx -> { aggregate, alias }
 
 // LIMIT 配置
-let limitConfig = { hasLimit: false, isLimitFixed: false, limitValue: '' };
+let limitConfig = { hasLimit: false, isLimitFixed: false, limitValue: 'limit' };
 
 // ============================================================
 // 工具函数
@@ -591,7 +591,7 @@ function resetSnippetFieldState() {
     selectedChips = { selectFields: new Set(), insertFields: new Set(), setFields: new Set() };
     orderBySelections = new Map();
     selectFieldConfigs = {};
-    limitConfig = { hasLimit: false, isLimitFixed: false, limitValue: '' };
+    limitConfig = { hasLimit: false, isLimitFixed: false, limitValue: 'limit' };
 }
 
 // ============================================================
@@ -618,16 +618,16 @@ function renderSnippetFieldPanel() {
 
     let html = '';
     if (operation === 'select') {
-        html += buildChipPanel('selectFields', '📤 SELECT 返回字段', '点击字段卡片切换选中状态，已选字段将出现在 SELECT 列表中');
+        html += buildChipPanel('selectFields', '📤 SELECT 返回字段', '在下拉框中搜索或选择字段，已选字段将出现在 SELECT 列表中，可配置聚合函数和别名');
         html += buildQueryBuilderPanel();
         html += buildOrderByChipPanel();
         html += buildLimitPanel();
     } else if (operation === 'insert') {
-        html += buildChipPanel('insertFields', '📥 INSERT 字段', '点击字段卡片切换选中状态，已选字段将出现在 INSERT 语句中');
+        html += buildChipPanel('insertFields', '📥 INSERT 字段', '在下拉框中搜索或选择字段，已选字段将出现在 INSERT 语句中');
     } else if (operation === 'delete') {
         html += buildQueryBuilderPanel();
     } else if (operation === 'update') {
-        html += buildChipPanel('setFields', '✏️ SET 更新字段', '点击字段卡片切换选中状态，已选字段将被更新');
+        html += buildChipPanel('setFields', '✏️ SET 更新字段', '在下拉框中搜索或选择字段，已选字段将被更新');
         html += buildQueryBuilderPanel();
     }
 
@@ -639,6 +639,7 @@ function renderSnippetFieldPanel() {
         if (selectEl) {
             new TomSelect(selectEl, {
                 plugins: ['remove_button'],
+                dropdownParent: 'body',  // 渲染到 body，避免被 overflow:hidden 裁剪
                 placeholder: '点击搜索或选择字段...',
                 onChange: function(values) {
                     selectedChips[panelId].clear();
@@ -661,6 +662,7 @@ function renderSnippetFieldPanel() {
     if (orderByEl) {
         new TomSelect(orderByEl, {
             plugins: ['remove_button'],
+            dropdownParent: 'body',  // 渲染到 body，避免被 overflow:hidden 裁剪
             placeholder: '点击搜索或选择排序字段...',
             onChange: function(values) {
                 // 同步 orderBySelections：保留已有方向，删除取消选中的
@@ -868,7 +870,7 @@ function buildLimitPanel() {
                             <option value="var" ${!isFixed ? 'selected' : ''}>变量 (Variable)</option>
                         </select>
                         <input type="text" id="limitValueInput" class="qb-fixed-value-input" style="flex:1;"
-                            value="${limitValue}" placeholder="${isFixed ? '例如: 10 或 0, 10' : '参数名, 如: limit'}"
+                            value="${isFixed ? limitValue : (limitValue || 'limit')}" placeholder="${isFixed ? '例如: 10 或 0, 10' : '参数名, 如: limit'}"
                             oninput="updateLimitValue(this.value)">
                     </div>
                 </div>
@@ -893,6 +895,12 @@ function toggleLimitPanel() {
     if (el) limitConfig.hasLimit = el.checked;
     const area = document.getElementById('limitConfigArea');
     if (area) area.style.display = limitConfig.hasLimit ? 'flex' : 'none';
+    // 开启 LIMIT且为变量模式时，自动填入默认参数名
+    if (limitConfig.hasLimit && !limitConfig.isLimitFixed && !limitConfig.limitValue) {
+        limitConfig.limitValue = 'limit';
+        const input = document.getElementById('limitValueInput');
+        if (input) input.value = 'limit';
+    }
 }
 
 function toggleLimitMode() {
