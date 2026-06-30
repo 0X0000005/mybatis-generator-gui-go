@@ -217,8 +217,9 @@
                                     </select>
                                 </div>
                                 <div class="form-group" style="flex:2;">
-                                    <label>方法名 <small style="color:#999;">(留空自动生成，保存片段后显示)</small></label>
-                                    <input type="text" id="snippetMethodName" class="form-input" placeholder="留空自动生成">
+                                    <label>方法名 <small style="color:#999;">(留空自动生成，预览显示在下方)</small></label>
+                                    <input type="text" id="snippetMethodName" class="form-input" placeholder="留空自动生成"
+                                        oninput="updateMethodNamePlaceholder()">
                                 </div>
                                 <div class="form-group" style="flex:0 0 auto; align-self:flex-end;">
                                     <label class="switch-label">
@@ -239,7 +240,7 @@
                                 <button type="button" id="btnAddSnippet" class="btn-add-snippet" onclick="addSnippet()">
                                     ＋ 添加当前片段
                                 </button>
-                                <p class="snippet-add-hint">配置好上方字段后点击添加，可添加多个片段</p>
+                                <p class="snippet-add-hint">✨ 配置好上方字段后点击添加，可累积多个片段</p>
                             </div>
 
                             <!-- 已配置片段列表 -->

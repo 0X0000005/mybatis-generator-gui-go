@@ -631,10 +631,29 @@ function renderSnippetFieldPanel() {
 
 function updateMethodNamePlaceholder() {
     const cfg = buildCurrentSnippetConfig();
-    const placeholder = computeMethodName(cfg);
+    const autoName = computeMethodName(cfg);
     const input = document.getElementById('snippetMethodName');
     if (input) {
-        input.placeholder = `留空自动生成: ${placeholder}`;
+        input.placeholder = `留空自动生成`;
+    }
+    // 带动预览 badge
+    let preview = document.getElementById('methodNamePreview');
+    if (!preview) {
+        const methodGroup = input && input.closest('.form-group');
+        if (methodGroup) {
+            preview = document.createElement('div');
+            preview.id = 'methodNamePreview';
+            preview.className = 'snippet-method-preview';
+            methodGroup.appendChild(preview);
+        }
+    }
+    if (preview) {
+        const userVal = input && input.value.trim();
+        if (userVal) {
+            preview.innerHTML = `<span class="snippet-method-preview-label">方法名：</span><span class="snippet-method-preview-name">${userVal}</span>`;
+        } else {
+            preview.innerHTML = `<span class="snippet-method-preview-label">自动生成：</span><span class="snippet-method-preview-name">${autoName}</span>`;
+        }
     }
 }
 
@@ -783,20 +802,23 @@ const QB_OP_LABELS = { '=': '= 等于', '!=': '≠ 不等于', '>': '> 大于', 
     'IS NULL': '∅ 为空', 'IS NOT NULL': '∈ 非空' };
 
 function buildQueryBuilderPanel() {
+    const isOr = whereLogic === 'OR';
     return `
         <div class="snippet-field-panel">
             <div class="snippet-field-panel-title">🔍 WHERE 条件构建器</div>
-            <div class="snippet-field-panel-hint">参考 QueryBuilder 风格，支持多种运算符，条件之间可选 AND / OR</div>
+            <div class="snippet-field-panel-hint">参考 react-querybuilder 风格，左侧彩色块标识 AND/OR 分组，支持多种运算符</div>
             <div class="qb-container">
-                <div class="qb-header">
-                    <div class="qb-combinator-group">
-                        <button class="qb-comb-btn active" id="whereLogicAnd" onclick="setWhereLogic('AND')">AND</button>
-                        <button class="qb-comb-btn" id="whereLogicOr" onclick="setWhereLogic('OR')">OR</button>
+                <div class="qb-group ${isOr ? 'qb-group-or' : ''}">
+                    <div class="qb-header">
+                        <div class="qb-combinator-group">
+                            <button class="qb-comb-btn ${!isOr ? 'active' : ''}" id="whereLogicAnd" onclick="setWhereLogic('AND')">AND</button>
+                            <button class="qb-comb-btn ${isOr ? 'active' : ''}" id="whereLogicOr" onclick="setWhereLogic('OR')">OR</button>
+                        </div>
+                        <button class="qb-add-rule-btn" onclick="addWhereRule()">＋ 添加条件</button>
                     </div>
-                    <button class="qb-add-rule-btn" onclick="addWhereRule()">＋ 添加条件</button>
-                </div>
-                <div class="qb-rules-list" id="whereRulesList">
-                    <!-- 由 renderWhereRules() 填充 -->
+                    <div class="qb-rules-list" id="whereRulesList">
+                        <!-- 由 renderWhereRules() 填充 -->
+                    </div>
                 </div>
             </div>
         </div>`;
@@ -833,6 +855,9 @@ function syncCombinatorButtons() {
     const orBtn = document.getElementById('whereLogicOr');
     if (andBtn) andBtn.classList.toggle('active', whereLogic === 'AND');
     if (orBtn) orBtn.classList.toggle('active', whereLogic === 'OR');
+    // 同时更新 qb-group 的左侧彩色边框
+    const group = document.querySelector('.qb-group');
+    if (group) group.classList.toggle('qb-group-or', whereLogic === 'OR');
 }
 
 function renderWhereRules() {
@@ -842,15 +867,25 @@ function renderWhereRules() {
         container.innerHTML = '<div class="qb-empty">暂无条件，点击上方"添加条件"按钮</div>';
         return;
     }
-    container.innerHTML = whereRules.map((rule, idx) => {
+    const isOr = whereLogic === 'OR';
+    const badgeClass = isOr ? 'or-badge' : '';
+    const badgeText = isOr ? 'OR' : 'AND';
+    const parts = whereRules.map((rule, idx) => {
         const fieldOptions = snippetTableColumns.map((col, i) =>
             `<option value="${i}" ${rule.fieldIdx === i ? 'selected' : ''}>${col.columnName}  (${col.dataType})</option>`
         ).join('');
         const opOptions = QB_OPERATORS.map(op =>
             `<option value="${op}" ${rule.operator === op ? 'selected' : ''}>${QB_OP_LABELS[op] || op}</option>`
         ).join('');
-        return `
+        const connector = idx > 0 ? `
+            <div class="qb-rule-connector">
+                <div class="qb-connector-line"></div>
+                <span class="qb-connector-badge ${badgeClass}">${badgeText}</span>
+                <div class="qb-connector-line"></div>
+            </div>` : '';
+        return `${connector}
             <div class="qb-rule" data-rule-id="${rule.id}">
+                <span class="qb-rule-number">${idx + 1}.</span>
                 <select class="qb-field-select" onchange="updateWhereRule(${rule.id}, 'fieldIdx', this.value)">
                     ${fieldOptions}
                 </select>
@@ -859,7 +894,8 @@ function renderWhereRules() {
                 </select>
                 <button class="qb-remove-btn" onclick="removeWhereRule(${rule.id})" title="删除此条件">✕</button>
             </div>`;
-    }).join('');
+    });
+    container.innerHTML = parts.join('');
 }
 
 function collectWhereConditions() {
@@ -1035,28 +1071,39 @@ function renderSnippetList() {
         return;
     }
     const opLabels = { select: '查询', insert: '新增', delete: '删除', update: '更新' };
+    const opColors = { select: '#3b82f6', insert: '#10b981', delete: '#ef4444', update: '#f97316' };
     container.innerHTML = snippetList.map((s, i) => {
         const label = `${opLabels[s.operation] || s.operation}${s.isBatch ? '(批量)' : ''}`;
-        const displayName = s.methodName || computeMethodName(s);
-        // 构建字段摘要
+        const autoName = computeMethodName(s);
+        const isAutoName = !s.methodName || s.methodName === autoName;
+        const displayName = s.methodName || autoName;
         const fieldCount =
             (s.selectFields || []).length + (s.insertFields || []).length +
             (s.setFields || []).length + (s.whereFields || []).length +
             (s.orderByFields || []).length;
+        const badgeBg = opColors[s.operation] || '#667eea';
         return `
             <div class="snippet-item">
-                <span class="snippet-item-badge snippet-badge-${s.operation}">${label}</span>
-                <div class="snippet-item-info" style="display:flex; align-items:center; gap:10px; flex:1;">
-                    <input type="text" class="form-input" style="width:200px; padding:4px 8px; font-family:monospace; font-size:13px;" value="${displayName}" onchange="updateSnippetMethodName(${i}, this.value)" placeholder="方法名">
+                <span class="snippet-item-badge" style="background:${badgeBg}">${label}</span>
+                <div style="display:flex; flex-direction:column; gap:3px; flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="text" class="snippet-item-method-input"
+                            value="${displayName}"
+                            onchange="updateSnippetMethodName(${i}, this.value)"
+                            placeholder="方法名"
+                            title="点击可修改方法名">
+                        ${isAutoName ? '<span class="snippet-auto-label">🧠 自动生成</span>' : ''}
+                    </div>
                     <span class="snippet-item-meta">${fieldCount} 个字段配置</span>
                 </div>
                 <div class="snippet-item-actions">
-                    <button class="btn btn-sm btn-info" onclick="editSnippet(${i})" title="加载到编辑区修改">编辑</button>
-                    <button class="btn btn-sm btn-danger" onclick="removeSnippet(${i})">删除</button>
+                    <button class="btn btn-sm btn-info" onclick="editSnippet(${i})" title="加载到编辑区修改">✏️ 编辑</button>
+                    <button class="btn btn-sm btn-danger" onclick="removeSnippet(${i})">🗑️</button>
                 </div>
             </div>`;
     }).join('');
 }
+
 
 function removeSnippet(idx) {
     snippetList.splice(idx, 1);
