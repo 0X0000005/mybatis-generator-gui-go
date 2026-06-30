@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -173,6 +174,7 @@ func appendSnippetsToFiles(files []string, tableName, mapperName, modelType stri
 
 	// 收集所有片段的Java代码和XML代码
 	var allJavaCodes, allXMLCodes []string
+	importsSet := make(map[string]bool)
 	for i, snippet := range snippets {
 		result, err := generator.GenerateSnippet(&snippet, mapperName, modelType, tableName)
 		if err != nil {
@@ -180,7 +182,17 @@ func appendSnippetsToFiles(files []string, tableName, mapperName, modelType stri
 		}
 		allJavaCodes = append(allJavaCodes, result.JavaCode)
 		allXMLCodes = append(allXMLCodes, result.XMLCode)
+		for _, imp := range result.Imports {
+			importsSet[imp] = true
+		}
 	}
+
+	// 收集所有需要的 import
+	var allImports []string
+	for imp := range importsSet {
+		allImports = append(allImports, imp)
+	}
+	sort.Strings(allImports)
 
 	// 追加到 Mapper.java
 	if javaFile != "" && len(allJavaCodes) > 0 {
@@ -188,7 +200,11 @@ func appendSnippetsToFiles(files []string, tableName, mapperName, modelType stri
 		if err != nil {
 			return fmt.Errorf("读取Mapper.java失败: %v", err)
 		}
-		newContent := generator.AppendSnippetToJava(string(content), strings.Join(allJavaCodes, "\n"))
+		newContent := string(content)
+		// 先注入缺失的 import
+		newContent = generator.AppendImportsToJava(newContent, allImports)
+		// 再追加方法声明
+		newContent = generator.AppendSnippetToJava(newContent, strings.Join(allJavaCodes, "\n"))
 		if err := os.WriteFile(javaFile, []byte(newContent), 0644); err != nil {
 			return fmt.Errorf("写入Mapper.java失败: %v", err)
 		}
@@ -233,8 +249,10 @@ func PreviewSnippet(c *gin.Context) {
 
 	var javaBuilder, xmlBuilder strings.Builder
 	xmlBuilder.WriteString("<!-- 以下片段追加至 Mapper.xml 的 </mapper> 前 -->\n\n")
-	javaBuilder.WriteString("// 以下方法声明追加至 Mapper 接口最后一个 } 前\n\n")
 
+	// 收集所有 import
+	importsSet := make(map[string]bool)
+	var results []*generator.SnippetResult
 	for i, snippet := range req.SnippetConfigs {
 		result, err := generator.GenerateSnippet(&snippet, req.MapperName, req.ModelType, req.TableName)
 		if err != nil {
@@ -242,6 +260,29 @@ func PreviewSnippet(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("片段%d生成失败: %v", i+1, err)})
 			return
 		}
+		results = append(results, result)
+		for _, imp := range result.Imports {
+			importsSet[imp] = true
+		}
+	}
+
+	// 构建 import 块
+	var importList []string
+	for imp := range importsSet {
+		importList = append(importList, imp)
+	}
+	sort.Strings(importList)
+
+	if len(importList) > 0 {
+		javaBuilder.WriteString("// 如需单独使用，请确认添加以下 import:\n")
+		for _, imp := range importList {
+			javaBuilder.WriteString("import " + imp + ";\n")
+		}
+		javaBuilder.WriteString("\n")
+	}
+	javaBuilder.WriteString("// 以下方法声明追加至 Mapper 接口最后一个 } 前\n\n")
+
+	for _, result := range results {
 		javaBuilder.WriteString(result.JavaCode)
 		javaBuilder.WriteString("\n")
 		xmlBuilder.WriteString(result.XMLCode)

@@ -3,6 +3,7 @@ package generator
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -11,8 +12,9 @@ import (
 
 // SnippetResult 片段生成结果
 type SnippetResult struct {
-	JavaCode string // Mapper接口方法声明代码
-	XMLCode  string // XML SQL片段代码
+	JavaCode string   // Mapper接口方法声明代码（使用简单类名）
+	XMLCode  string   // XML SQL片段代码
+	Imports  []string // 需要的 import（如 ["java.util.List", "org.apache.ibatis.annotations.Param"]）
 }
 
 // GenerateSnippet 生成自定义MyBatis片段
@@ -38,6 +40,36 @@ func AppendSnippetToJava(javaContent, javaCode string) string {
 		return javaContent + "\n" + javaCode
 	}
 	return javaContent[:lastBrace] + "\n" + javaCode + "\n" + javaContent[lastBrace:]
+}
+
+// AppendImportsToJava 将缺失的 import 注入到 Mapper.java 的 import 块
+func AppendImportsToJava(javaContent string, imports []string) string {
+	for _, imp := range imports {
+		line := "import " + imp + ";"
+		if strings.Contains(javaContent, line) {
+			continue
+		}
+		// 在最后一个 import 语句后插入
+		lastImport := strings.LastIndex(javaContent, "import ")
+		if lastImport >= 0 {
+			newlineAfter := strings.Index(javaContent[lastImport:], "\n")
+			if newlineAfter >= 0 {
+				insertAt := lastImport + newlineAfter + 1
+				javaContent = javaContent[:insertAt] + line + "\n" + javaContent[insertAt:]
+				continue
+			}
+		}
+		// 如果没有 import，就在 package 语句后插入
+		pkgEnd := strings.Index(javaContent, ";")
+		if pkgEnd >= 0 {
+			newlineAfter := strings.Index(javaContent[pkgEnd:], "\n")
+			if newlineAfter >= 0 {
+				insertAt := pkgEnd + newlineAfter + 1
+				javaContent = javaContent[:insertAt] + "\n" + line + "\n" + javaContent[insertAt:]
+			}
+		}
+	}
+	return javaContent
 }
 
 // AppendSnippetToXML 将片段追加到Mapper.xml文件内容中（在 </mapper> 前）
@@ -77,13 +109,13 @@ func generateSelectSnippet(cfg *config.SnippetConfig, mapperName, modelType, tab
 		}
 		inField := cfg.WhereFields[0]
 		javaBuilder.WriteString(fmt.Sprintf(
-			"    java.util.List<%s> %s(@org.apache.ibatis.annotations.Param(\"list\") java.util.List<%s> list);\n",
+			"    List<%s> %s(@Param(\"list\") List<%s> list);\n",
 			simpleModel, methodName, inField.JavaType,
 		))
 	} else {
 		params := buildJavaParams(cfg)
 		javaBuilder.WriteString(fmt.Sprintf(
-			"    java.util.List<%s> %s(%s);\n",
+			"    List<%s> %s(%s);\n",
 			simpleModel, methodName, params,
 		))
 	}
@@ -114,6 +146,7 @@ func generateSelectSnippet(cfg *config.SnippetConfig, mapperName, modelType, tab
 	return &SnippetResult{
 		JavaCode: javaBuilder.String(),
 		XMLCode:  xmlCode,
+		Imports:  collectSnippetImports(cfg),
 	}, nil
 }
 
@@ -139,7 +172,7 @@ func generateInsertSnippet(cfg *config.SnippetConfig, mapperName, modelType, tab
 	javaBuilder.WriteString("     */\n")
 	if cfg.IsBatch {
 		javaBuilder.WriteString(fmt.Sprintf(
-			"    int %s(@org.apache.ibatis.annotations.Param(\"list\") java.util.List<%s> list);\n",
+			"    int %s(@Param(\"list\") List<%s> list);\n",
 			methodName, simpleModel,
 		))
 	} else {
@@ -158,7 +191,7 @@ func generateInsertSnippet(cfg *config.SnippetConfig, mapperName, modelType, tab
 		return nil, err
 	}
 
-	return &SnippetResult{JavaCode: javaBuilder.String(), XMLCode: xmlCode}, nil
+	return &SnippetResult{JavaCode: javaBuilder.String(), XMLCode: xmlCode, Imports: collectSnippetImports(cfg)}, nil
 }
 
 func generateDeleteSnippet(cfg *config.SnippetConfig, mapperName, modelType, tableName string) (*SnippetResult, error) {
@@ -183,7 +216,7 @@ func generateDeleteSnippet(cfg *config.SnippetConfig, mapperName, modelType, tab
 		}
 		inField := cfg.WhereFields[0]
 		javaBuilder.WriteString(fmt.Sprintf(
-			"    int %s(@org.apache.ibatis.annotations.Param(\"list\") java.util.List<%s> list);\n",
+			"    int %s(@Param(\"list\") List<%s> list);\n",
 			methodName, inField.JavaType,
 		))
 	} else {
@@ -205,7 +238,7 @@ func generateDeleteSnippet(cfg *config.SnippetConfig, mapperName, modelType, tab
 		return nil, err
 	}
 
-	return &SnippetResult{JavaCode: javaBuilder.String(), XMLCode: xmlCode}, nil
+	return &SnippetResult{JavaCode: javaBuilder.String(), XMLCode: xmlCode, Imports: collectSnippetImports(cfg)}, nil
 }
 
 func generateUpdateSnippet(cfg *config.SnippetConfig, mapperName, modelType, tableName string) (*SnippetResult, error) {
@@ -254,7 +287,7 @@ func generateUpdateSnippet(cfg *config.SnippetConfig, mapperName, modelType, tab
 		return nil, err
 	}
 
-	return &SnippetResult{JavaCode: javaBuilder.String(), XMLCode: xmlCode}, nil
+	return &SnippetResult{JavaCode: javaBuilder.String(), XMLCode: xmlCode, Imports: collectSnippetImports(cfg)}, nil
 }
 
 // -----------------------------------------------------------------------
@@ -470,39 +503,101 @@ func buildJavaParams(cfg *config.SnippetConfig) string {
 	// 过滤掉 IS NULL / IS NOT NULL（无需Java参数）
 	effective := effectiveWhereFields(cfg.WhereFields)
 	var parts []string
-	
+
 	// 处理 Limit 参数
 	if cfg.Operation == "select" && cfg.HasLimit && !cfg.IsLimitFixed {
 		limitName := cfg.LimitValue
 		if limitName == "" {
 			limitName = "limit"
 		}
-		// 如果用户输入了 "offset, limit" 等多个参数，简单处理：只声明一个参数，或者让用户自己确保类型
-		// 为了简单起见，这里假设就一个 Integer 参数
-		parts = append(parts, fmt.Sprintf("@org.apache.ibatis.annotations.Param(\"%s\") Integer %s", limitName, limitName))
+		parts = append(parts, fmt.Sprintf("@Param(\"%s\") Integer %s", limitName, limitName))
 	}
 
 	for _, f := range effective {
 		javaType := f.JavaType
 		if f.Operator == "IN" || f.Operator == "NOT IN" {
-			javaType = "java.util.List<" + f.JavaType + ">"
+			javaType = "List<" + f.JavaType + ">"
 		}
-		parts = append(parts, fmt.Sprintf("@org.apache.ibatis.annotations.Param(\"%s\") %s %s",
+		parts = append(parts, fmt.Sprintf("@Param(\"%s\") %s %s",
 			f.FieldName, javaType, f.FieldName))
 	}
-	
-	// 如果只有一个 Where 条件且没有 Limit，不使用 @Param 也是可以的，但统一加上 @Param 更好兼容。
-	// 但为了保持原有逻辑向后兼容：
+
+	// 如果只有一个 Where 条件且没有 Limit，不使用 @Param
 	if len(effective) == 1 && len(parts) == 1 {
 		f := effective[0]
 		javaType := f.JavaType
 		if f.Operator == "IN" || f.Operator == "NOT IN" {
-			javaType = "java.util.List<" + f.JavaType + ">"
+			javaType = "List<" + f.JavaType + ">"
 		}
 		return fmt.Sprintf("%s %s", javaType, f.FieldName)
 	}
 
 	return strings.Join(parts, ", ")
+}
+
+// collectSnippetImports 根据片段配置收集需要的 import
+func collectSnippetImports(cfg *config.SnippetConfig) []string {
+	importsMap := make(map[string]bool)
+	effective := effectiveWhereFields(cfg.WhereFields)
+
+	switch cfg.Operation {
+	case config.OperationSelect:
+		importsMap["java.util.List"] = true // 返回类型始终是 List
+		if cfg.IsBatch {
+			importsMap["org.apache.ibatis.annotations.Param"] = true
+		} else {
+			hasLimitParam := cfg.HasLimit && !cfg.IsLimitFixed
+			// @Param: 有 limit 参数 或 effective 字段 > 1
+			if hasLimitParam || len(effective) > 1 {
+				importsMap["org.apache.ibatis.annotations.Param"] = true
+			}
+			for _, f := range effective {
+				if f.Operator == "IN" || f.Operator == "NOT IN" {
+					importsMap["java.util.List"] = true
+				}
+			}
+		}
+	case config.OperationInsert:
+		if cfg.IsBatch {
+			importsMap["java.util.List"] = true
+			importsMap["org.apache.ibatis.annotations.Param"] = true
+		}
+	case config.OperationDelete:
+		if cfg.IsBatch {
+			importsMap["java.util.List"] = true
+			importsMap["org.apache.ibatis.annotations.Param"] = true
+		} else {
+			if len(effective) > 1 {
+				importsMap["org.apache.ibatis.annotations.Param"] = true
+			}
+			for _, f := range effective {
+				if f.Operator == "IN" || f.Operator == "NOT IN" {
+					importsMap["java.util.List"] = true
+				}
+			}
+		}
+	case config.OperationUpdate:
+		if cfg.IsBatch {
+			importsMap["java.util.List"] = true
+			importsMap["org.apache.ibatis.annotations.Param"] = true
+		} else {
+			if len(effective) > 1 {
+				importsMap["org.apache.ibatis.annotations.Param"] = true
+			}
+			for _, f := range effective {
+				if f.Operator == "IN" || f.Operator == "NOT IN" {
+					importsMap["java.util.List"] = true
+				}
+			}
+		}
+	}
+
+	result := make([]string, 0, len(importsMap))
+	for imp := range importsMap {
+		result = append(result, imp)
+	}
+	sort.Strings(result)
+	return result
 }
 
 func lastPart(fullType string) string {
