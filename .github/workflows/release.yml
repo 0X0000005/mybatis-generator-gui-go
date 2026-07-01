@@ -33,6 +33,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            mgg.exe
-            mgg
+            MyBatisGenerator.exe
+            MyBatisGenerator
           generate_release_notes: true
