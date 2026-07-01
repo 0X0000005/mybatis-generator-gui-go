@@ -1,4 +1,4 @@
-# MyBatis Generator GUI  
+# MyBatis Generator WEBUI  
 
 <p align="center">
   <img src="https://img.shields.io/badge/Go-1.20+-00ADD8?style=flat&logo=go"/>
@@ -19,7 +19,7 @@
 ## ✨ 核心特性
 
 - 🌐 **Web界面** - 现代化Web技术，浏览器访问，无需安装
-- 🗄️ **多数据库支持** - MySQL 和 PostgreSQL
+- 🗄️ **多数据库支持** - MySQL、PostgreSQL 和 Oracle
 - 💾 **配置持久化** - SQLite本地存储连接和生成配置
 - 🔄 **自动命名转换** - 下划线命名自动转换为驼峰命名
 - 📦 **完整代码生成** - 实体类、Mapper接口、XML映射文件一键生成
@@ -83,26 +83,24 @@ go run cmd/main.go
 | 表别名 | SQL使用表别名避免列名冲突 |
 | 实际列名 | 保持数据库列名不转驼峰 |
 
-### v1.5 新增特性
+### v1.6 新增特性
 
-- 🎯 **多表选择** - 支持同时选择多张表批量生成代码
-- 📋 **列定制** - 可自定义列属性名、Java类型，或忽略特定列
-- 🔄 **表切换** - 列定制弹窗内可切换查看不同表的列
-- 🛡️ **无主键支持** - 正确处理没有主键的表
+- 🐘 **Oracle数据库支持** - 新增对 Oracle 数据库的连接与代码生成支持
+- ☕ **Lombok增强** - 默认启用 Lombok，并自动添加 `@EqualsAndHashCode(callSuper = false)` 避免继承警告
+- 🐛 **细节修复** - 修复驼峰命名格式保持、批量插入/更新语法等问题
 
-### v1.7 & v1.7.5 新增特性 (自定义代码片段)
+### v1.7.x 系列新增特性 (自定义代码片段与深度优化)
 
 - 🧩 **可视化片段生成** - 全新 Tab 支持图形化配置 SELECT、INSERT、UPDATE、DELETE 自定义代码片段
 - 🔍 **高级条件构建器** - 集成 React QueryBuilder 风格的高级条件组合器，支持 AND/OR 拼接，可根据字段类型切换动态输入控件
 - 🔀 **WHERE 灵活设值** - 每条条件可选「变量参数」或「固定值」，固定值直接内嵌 SQL
-- ✨ **智能类型推断** - 从表结构及用户自定义列信息中自动推断 Java 入参类型，杜绝类型错乱
+- ✨ **智能类型与命名推断** - 自动推断 Java 入参类型（支持简化类名 `List`/`@Param`）；根据字段及所有比较符（>, IN, LIKE 等）自动推导并生成极具语义的方法名（如 `selectNameAndAgeByStatusGreaterThan`），并支持防重
 - 🚀 **多算子支持** - 完美支持 IN / NOT IN 等高级查询，后台自动智能生成安全的 `<foreach>` 循环标签
-- 🧠 **智能命名与防重** - 自动生成极具语义的方法名（如 `selectNameAndAgeByStatusGreaterThan`），重复时自动追加序号防重
 - 🔧 **无缝并入** - 自动将自定义代码片段追加合并至原有的 Mapper.java 及 Mapper.xml 中
-- ✅ **字段快捷检索与全选** - SELECT / INSERT / SET 字段面板使用可搜索下拉框，并新增「全选」按钮，操作极速便捷
-- 🛡️ **安全与容错校验** - 自动拦截缺少 WHERE 匹配条件的危险批量操作；自动检测 `IS NULL` 等互斥条件并实时高亮警告
-- 📊 **高级 SQL 特性** - SELECT 支持配置 COUNT/SUM 等聚合函数及 AS 别名，支持 LIMIT 分页配置，支持 ORDER BY 优先级排序角标
-- 👁️ **优雅的代码预览** - 优化前端预览体验，全局代码采用内联展开，单片段采用大弹窗展示，提供极致的代码阅读体验
+- ✅ **字段快捷操作** - 字段面板支持下拉搜索与「全选」一键选择，操作极速便捷
+- 🛡️ **安全与容错校验** - 拦截缺少 WHERE 的危险批量操作（但完美支持 `selectAll` 无条件全查）；实时检测 `IS NULL` 互斥警告
+- 📊 **高级 SQL 特性** - SELECT 支持配置 COUNT/SUM 等聚合函数及 AS 别名，支持 LIMIT 分页配置，支持 ORDER BY 优先级排序
+- 👁️ **优雅的代码预览** - 全局代码内联展开，单片段支持专属弹窗精准预览（并显示独立 import 语句），提供极致的代码阅读体验
 
 
 ## 🛠️ 技术栈
@@ -112,7 +110,7 @@ go run cmd/main.go
 | 语言 | Go 1.20+ |
 | Web框架 | Gin |
 | 前端 | HTML5 + CSS3 + JavaScript |
-| 数据库驱动 | go-sql-driver/mysql, lib/pq |
+| 数据库驱动 | go-sql-driver/mysql, lib/pq, go-ora |
 | 本地存储 | SQLite |
 
 ## 📂 项目结构

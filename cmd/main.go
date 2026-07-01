@@ -29,13 +29,13 @@ func main() {
 
 	// 显示版本号
 	if *showVersion {
-		fmt.Printf("MyBatis Generator GUI v%s\n", version)
+		fmt.Printf("MyBatis Generator WEBUI v%s\n", version)
 		os.Exit(0)
 	}
 
 	// 显示帮助信息
 	if *showHelp {
-		fmt.Printf("MyBatis Generator GUI v%s\n\n", version)
+		fmt.Printf("MyBatis Generator WEBUI v%s\n\n", version)
 		fmt.Println("用法: mybatis-generator-gui [选项]")
 		fmt.Println()
 		fmt.Println("选项:")
@@ -119,7 +119,7 @@ func main() {
 
 	// 启动服务器
 	addr := fmt.Sprintf(":%d", *port)
-	log.Printf("MyBatis Generator GUI 启动成功!")
+	log.Printf("MyBatis Generator WEBUI 启动成功!")
 	log.Printf("访问地址: http://localhost%s", addr)
 	log.Printf("版本: %s", version)
 
