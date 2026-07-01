@@ -52,6 +52,16 @@ function capitalize(s) {
     return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 }
 
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return '';
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
 function copyCode(elementId) {
     const el = document.getElementById(elementId);
     navigator.clipboard.writeText(el.textContent).then(() => {
@@ -67,31 +77,70 @@ function copyCode(elementId) {
     });
 }
 
-// 客户端计算方法名（与后端逻辑保持一致，用于片段列表展示）
 function computeMethodName(cfg) {
     if (cfg.methodName) return cfg.methodName;
+    
     const whereFields = (cfg.whereFields || []).filter(
         f => f.operator !== 'IS NULL' && f.operator !== 'IS NOT NULL'
     );
+    const getWherePart = () => {
+        if (whereFields.length === 0) return '';
+        return 'By' + whereFields.map(f => {
+            let p = capitalize(f.fieldName);
+            if (f.operator === 'IN') p += 'In';
+            else if (f.operator === 'NOT IN') p += 'NotIn';
+            else if (f.operator === 'LIKE') p += 'Like';
+            else if (f.operator === '>') p += 'GreaterThan';
+            else if (f.operator === '>=') p += 'GreaterThanEqual';
+            else if (f.operator === '<') p += 'LessThan';
+            else if (f.operator === '<=') p += 'LessThanEqual';
+            else if (f.operator === '!=') p += 'NotEqual';
+            return p;
+        }).join('And');
+    };
+
     switch (cfg.operation) {
         case 'select': {
-            if (whereFields.length === 0) return cfg.isBatch ? 'selectAll' : 'selectByFields';
-            const parts = whereFields.map(f => capitalize(f.fieldName));
-            return cfg.isBatch ? 'selectBy' + parts.join('And') + 'In' : 'selectBy' + parts.join('And');
+            let name = 'select';
+            if (cfg.selectFields && cfg.selectFields.length > 0 && cfg.selectFields.length <= 3) {
+                name += cfg.selectFields.map(f => capitalize(f.fieldName)).join('And');
+            }
+            
+            let wherePart = getWherePart();
+            if (!wherePart) name += (name === 'select' ? 'All' : '');
+            else name += wherePart;
+            
+            if (cfg.isBatch) name += 'Batch';
+            return name;
         }
-        case 'insert':
-            return cfg.isBatch ? 'insertBatchByFields' : 'insertByFields';
+        case 'insert': {
+            let name = 'insert';
+            if (cfg.insertFields && cfg.insertFields.length > 0 && cfg.insertFields.length <= 3) {
+                name += cfg.insertFields.map(f => capitalize(f.fieldName)).join('And');
+            } else if (cfg.insertFields && cfg.insertFields.length > 3) {
+                name += 'Selective';
+            }
+            if (cfg.isBatch) name += 'Batch';
+            return name;
+        }
         case 'delete': {
-            if (whereFields.length === 0) return 'deleteByFields';
-            const parts = whereFields.map(f => capitalize(f.fieldName));
-            return cfg.isBatch ? 'deleteBy' + parts.join('And') + 'In' : 'deleteBy' + parts.join('And');
+            let name = 'delete';
+            let wherePart = getWherePart();
+            if (!wherePart) name += 'All';
+            else name += wherePart;
+            if (cfg.isBatch) name += 'Batch';
+            return name;
         }
         case 'update': {
-            const setParts = (cfg.setFields || []).map(f => capitalize(f.fieldName));
-            const whereParts = whereFields.map(f => capitalize(f.fieldName));
             let name = 'update';
-            if (setParts.length > 0) name += setParts.join('And');
-            if (whereParts.length > 0) name += 'By' + whereParts.join('And');
+            if (cfg.setFields && cfg.setFields.length > 0 && cfg.setFields.length <= 3) {
+                name += cfg.setFields.map(f => capitalize(f.fieldName)).join('And');
+            } else if (cfg.setFields && cfg.setFields.length > 3) {
+                name += 'Selective';
+            }
+            let wherePart = getWherePart();
+            if (wherePart) name += wherePart;
+            else name += 'All';
             if (cfg.isBatch) name += 'Batch';
             return name;
         }
@@ -737,6 +786,14 @@ function updateMethodNamePlaceholder() {
 // -----------------------------------------------------------------------
 // Chip 选择器 (用于 TomSelect)
 // -----------------------------------------------------------------------
+function selectAllFields(panelId) {
+    const selectEl = document.getElementById(panelId + 'Select');
+    if (selectEl && selectEl.tomselect) {
+        const allValues = snippetTableColumns.map((col, idx) => idx.toString());
+        selectEl.tomselect.setValue(allValues);
+    }
+}
+
 function buildChipPanel(panelId, title, hint) {
     const options = snippetTableColumns.map((col, idx) => {
         return `<option value="${idx}">${col.columnName} (${col.dataType})</option>`;
@@ -744,7 +801,10 @@ function buildChipPanel(panelId, title, hint) {
     const detailsContainer = panelId === 'selectFields' ? `<div id="selectFieldDetailsList" class="select-details-list"></div>` : '';
     return `
         <div class="snippet-field-panel">
-            <div class="snippet-field-panel-title">${title}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
+                <div class="snippet-field-panel-title" style="margin-bottom: 0;">${title}</div>
+                <button class="btn btn-sm btn-secondary" style="padding: 2px 8px; font-size: 12px;" onclick="selectAllFields('${panelId}')">全选</button>
+            </div>
             <div class="snippet-field-panel-hint">${hint}</div>
             <div class="field-select-wrapper" id="${panelId}Wrapper">
                 <select id="${panelId}Select" multiple autocomplete="off">
@@ -1234,7 +1294,12 @@ function addSnippet() {
     const hasFields =
         cfg.selectFields.length > 0 || cfg.whereFields.length > 0 ||
         cfg.insertFields.length > 0 || cfg.setFields.length > 0 || cfg.orderByFields.length > 0;
-    if (!hasFields) { showMessage('请至少配置一个字段或条件', 'error'); return; }
+    if (!hasFields && cfg.operation !== 'select') { showMessage('请至少配置一个字段或条件', 'error'); return; }
+
+    if (cfg.isBatch && cfg.operation !== 'insert' && cfg.whereFields.length === 0) {
+        showMessage('批量操作需要至少一个WHERE条件', 'error');
+        return;
+    }
 
     // 冲突检测：有未解决的 WHERE 冲突则不允许添加
     const conflictIds = validateWhereRules();
@@ -1410,7 +1475,7 @@ function renderSnippetList() {
                         <span class="snippet-item-meta">${fieldCount} 个字段配置</span>
                     </div>
                     <div class="snippet-item-actions">
-                        <button class="btn btn-sm btn-secondary" onclick="toggleSnippetInlinePreview(${i})" title="内联预览">👁️ 预览</button>
+                        <button class="btn btn-sm btn-secondary" onclick="showSnippetPreviewModal(${i})" title="弹窗预览">👁️ 预览</button>
                         <button class="btn btn-sm btn-info" onclick="editSnippet(${i})" title="加载到编辑区修改">✏️ 编辑</button>
                         <button class="btn btn-sm btn-danger" onclick="removeSnippet(${i})">🗑️</button>
                     </div>
@@ -1552,7 +1617,12 @@ async function previewCurrentSnippet() {
     const hasFields =
         currentCfg.selectFields.length > 0 || currentCfg.whereFields.length > 0 ||
         currentCfg.insertFields.length > 0 || currentCfg.setFields.length > 0 || currentCfg.orderByFields.length > 0;
-    if (!hasFields) { showMessage('请至少配置一个字段或条件', 'error'); return; }
+    if (!hasFields && currentCfg.operation !== 'select') { showMessage('请至少配置一个字段或条件', 'error'); return; }
+
+    if (currentCfg.isBatch && currentCfg.operation !== 'insert' && currentCfg.whereFields.length === 0) {
+        showMessage('批量操作需要至少一个WHERE条件', 'error');
+        return;
+    }
     
     // 如果没有输入方法名，临时生成一个
     if (!currentCfg.methodName) {
