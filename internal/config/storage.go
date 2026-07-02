@@ -7,6 +7,8 @@ import (
 	_ "modernc.org/sqlite" // SQLite驱动
 	"os"
 	"path/filepath"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -57,6 +59,14 @@ func createTables() error {
 		value TEXT NOT NULL
 	);`
 
+	// 创建用户表
+	usersTable := `
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT NOT NULL UNIQUE,
+		password_hash TEXT NOT NULL
+	);`
+
 	_, err := db.Exec(dbsTable)
 	if err != nil {
 		return fmt.Errorf("创建dbs表失败: %v", err)
@@ -65,6 +75,11 @@ func createTables() error {
 	_, err = db.Exec(generatorTable)
 	if err != nil {
 		return fmt.Errorf("创建generator_config表失败: %v", err)
+	}
+
+	_, err = db.Exec(usersTable)
+	if err != nil {
+		return fmt.Errorf("创建users表失败: %v", err)
 	}
 
 	return nil
@@ -220,4 +235,82 @@ func LoadGeneratorConfigByName(name string) (*GeneratorConfig, error) {
 func DeleteGeneratorConfig(name string) error {
 	_, err := db.Exec("DELETE FROM generator_config WHERE name = ?", name)
 	return err
+}
+
+// CreateOrUpdateUser 插入或更新用户
+func CreateOrUpdateUser(username, password string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("加密密码失败: %v", err)
+	}
+
+	// SQLite ON CONFLICT 需要在 UNIQUE 约束上
+	// 我们采用先尝试 UPDATE，如果没有更新任何行再 INSERT 的方式，兼容老版本 SQLite
+	res, err := db.Exec("UPDATE users SET password_hash = ? WHERE username = ?", string(hash), username)
+	if err != nil {
+		return fmt.Errorf("更新用户失败: %v", err)
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		_, err = db.Exec("INSERT INTO users (username, password_hash) VALUES (?, ?)", username, string(hash))
+		if err != nil {
+			return fmt.Errorf("插入用户失败: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// GetUserPasswordHash 根据用户名获取密码Hash
+func GetUserPasswordHash(username string) (string, error) {
+	var hash string
+	err := db.QueryRow("SELECT password_hash FROM users WHERE username = ?", username).Scan(&hash)
+	if err != nil {
+		return "", err
+	}
+	return hash, nil
+}
+
+// GetUserCount 获取用户总数
+func GetUserCount() (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// GetFirstUser 获取系统当前配置的第一个用户名
+func GetFirstUser() (string, error) {
+	var username string
+	err := db.QueryRow("SELECT username FROM users ORDER BY id ASC LIMIT 1").Scan(&username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil
+		}
+		return "", err
+	}
+	return username, nil
+}
+
+// UpdateUser 更新现有用户的用户名和密码
+func UpdateUser(oldUsername, newUsername, password string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("加密密码失败: %v", err)
+	}
+
+	res, err := db.Exec("UPDATE users SET username = ?, password_hash = ? WHERE username = ?", newUsername, string(hash), oldUsername)
+	if err != nil {
+		return fmt.Errorf("更新用户失败: %v", err)
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("未找到要更新的用户")
+	}
+
+	return nil
 }

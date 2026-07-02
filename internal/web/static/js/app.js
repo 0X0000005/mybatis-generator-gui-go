@@ -1739,7 +1739,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!e.target.checked) document.getElementById('jsonPropertyUpperCase').checked = false;
     };
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') { hideConnectionModal(); hideColumnModal(); hideSnippetPreviewModal(); }
+        if (e.key === 'Escape') { hideConnectionModal(); hideColumnModal(); hideSnippetPreviewModal(); hideAccountModal(); }
     });
     document.getElementById('btnCustomizeColumns').onclick = showColumnModal;
     document.getElementById('btnApplyColumns').onclick = applyColumnSettings;
@@ -1751,3 +1751,55 @@ document.addEventListener('DOMContentLoaded', function () {
         this.dataset.userEdited = this.value ? '1' : '';
     });
 });
+
+// ============================================================
+// 账号管理
+// ============================================================
+function showAccountModal() {
+    document.getElementById('oldPassword').value = '';
+    const cur = document.getElementById('currentUsername').value;
+    document.getElementById('newUsername').value = cur || 'admin';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('accountModal').style.display = 'flex';
+}
+
+function hideAccountModal() {
+    document.getElementById('accountModal').style.display = 'none';
+}
+
+async function submitAccountUpdate() {
+    const oldPassword = document.getElementById('oldPassword').value.trim();
+    const newUsername = document.getElementById('newUsername').value.trim();
+    const newPassword = document.getElementById('newPassword').value.trim();
+    const username = document.getElementById('currentUsername').value.trim() || 'admin';
+
+    if (!oldPassword || !newUsername || !newPassword) {
+        showMessage('请填写所有必填项', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/account/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username,
+                oldPassword,
+                newUsername,
+                newPassword
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            showMessage('账号修改成功，请重新登录！', 'success');
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1500);
+        } else {
+            showMessage(result.error || '修改失败', 'error');
+        }
+    } catch (error) {
+        showMessage('网络或服务器错误: ' + error.message, 'error');
+    }
+}

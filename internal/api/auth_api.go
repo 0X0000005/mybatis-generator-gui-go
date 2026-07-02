@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/yourusername/mybatis-generator-gui-go/internal/config"
 	"github.com/yourusername/mybatis-generator-gui-go/internal/web"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -14,17 +15,21 @@ const (
 	// AuthCookieName Cookie 名称
 	AuthCookieName = "mgg_session"
 	// AuthCookieValue 基于版本号，每次更新版本后自动失效旧 session
-	AuthCookieValue = "auth_v1.7.9"
-	// UsernameHash 用户名的 bcrypt hash
-	UsernameHash = "$2a$10$knnRQBicLZhhk5DXHmxHR.z9/z2MNxPd1GUtmqZZhKso6dDcgIj2K"
-	// PasswordHash 密码的 bcrypt hash
-	PasswordHash = "$2a$10$1eF.gu83pocTbjZeULFuY.t.4.AqxIVnf6qxR3Fd4aKwX4Vb1u51i"
+	AuthCookieValue = "auth_v1.7.9.2"
 )
 
 // LoginRequest 登录请求结构
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+// UpdateAccountRequest 修改账号请求结构
+type UpdateAccountRequest struct {
+	Username    string `json:"username"` // 原用户名
+	OldPassword string `json:"oldPassword"`
+	NewUsername string `json:"newUsername"`
+	NewPassword string `json:"newPassword"`
 }
 
 // LoginResponse 登录响应结构
@@ -90,11 +95,19 @@ func HandleLoginAPI(c *gin.Context) {
 		return
 	}
 
-	// 使用 bcrypt 验证用户名和密码
-	usernameMatch := bcrypt.CompareHashAndPassword([]byte(UsernameHash), []byte(req.Username)) == nil
-	passwordMatch := bcrypt.CompareHashAndPassword([]byte(PasswordHash), []byte(req.Password)) == nil
+	hash, err := config.GetUserPasswordHash(req.Username)
+	if err != nil {
+		log.Printf("[失败] 找不到该用户或获取密码失败: %v", err)
+		c.JSON(http.StatusOK, LoginResponse{
+			Success: false,
+			Error:   "账号或密码不正确",
+		})
+		return
+	}
 
-	if usernameMatch && passwordMatch {
+	passwordMatch := bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)) == nil
+
+	if passwordMatch {
 		log.Printf("[成功] 登录验证通过")
 		// 设置 Cookie
 		c.SetCookie(
@@ -153,11 +166,60 @@ func HandleIndexWithAuth(c *gin.Context, version string) {
 		return
 	}
 
+	// 获取当前用户名
+	username, _ := config.GetFirstUser()
+
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	err = tmpl.Execute(c.Writer, gin.H{
-		"version": version,
+		"version":  version,
+		"username": username,
 	})
 	if err != nil {
 		log.Printf("[错误] 渲染模板失败: %v", err)
 	}
+}
+
+// HandleUpdateAccountAPI 处理修改账号密码
+func HandleUpdateAccountAPI(c *gin.Context) {
+	log.Printf("[访问] %s %s - 修改账号密码", c.Request.Method, c.Request.URL.Path)
+
+	var req UpdateAccountRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[错误] 解析修改请求失败: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "解析请求失败"})
+		return
+	}
+
+	// 校验原密码
+	hash, err := config.GetUserPasswordHash(req.Username)
+	if err != nil {
+		log.Printf("[失败] 找不到原用户: %v", err)
+		c.JSON(http.StatusOK, gin.H{"success": false, "error": "原账号不存在"})
+		return
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.OldPassword)) != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "error": "原密码不正确"})
+		return
+	}
+
+	// 更新账号密码
+	if err := config.UpdateUser(req.Username, req.NewUsername, req.NewPassword); err != nil {
+		log.Printf("[错误] 更新账号密码失败: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "更新账号密码失败"})
+		return
+	}
+	
+	// 成功后清除 cookie，要求重新登录
+	c.SetCookie(
+		AuthCookieName,
+		"",
+		-1, // MaxAge -1 表示删除
+		"/",
+		"",
+		false,
+		true,
+	)
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }
